@@ -1,0 +1,89 @@
+
+<div class="min-h-screen bg-gray-50 pt-24 px-4 dark:bg-gray-800">
+<div class="max-w-md mx-auto bg-white p-6 rounded shadow dark:bg-gray-900">
+  <h1 class="text-xl font-bold text-blue-600 mb-4 text-center">Ajouter un numéro à la Blacklist</h1>
+
+   <!-- Flash messages -->
+   <%- include('partials/flash') %>
+   <!-- <p id="errorMessage" class="mb-6"></p> -->
+
+  <form action="/blacklist_add" method="POST" class="space-y-4">
+    <div>
+      <label for="phone" class="block text-sm font-medium">Numéro de téléphone</label>
+      <input type="text" name="phone" id="phone" class="w-full border px-3 py-2 rounded dark:text-gray-900" placeholder="+2126xxxxxxxx ou 06xxxxxxxx" required>
+    </div>
+
+    <div>
+      <label for="reason" class="block text-sm font-medium">Raison</label>
+      <select name="reason" id="reason" class="w-full border px-3 py-2 rounded dark:text-gray-900" required>
+        <% reasons.forEach(function(r) { %>
+          <option value="<%= r %>"><%= r %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full">Ajouter</button>
+
+  </form>
+
+  <br>
+  <button id="openUploadModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full">
+    📤 Importer Csv/Excel
+  </button>
+  
+</div>
+</div>
+
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white w-full max-w-md p-6 rounded shadow">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-bold">Importer Excel/Csv</h2>
+      <button onclick="closeUploadModal()" class="text-gray-500 hover:text-red-600">&times;</button>
+    </div>
+    <input type="file" id="csvFile" accept=".csv" class="w-full mb-4">
+    <button id="uploadBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full">Importer</button>
+     <div class="text-center mt-4">
+      <a href="/template_blacklist.csv" download class="text-blue-600 hover:underline mr-4">
+        📄 Télécharger le modèle CSV
+      </a>
+      <br>
+      <a href="/template_blacklist.xlsx" download class="text-green-600 hover:underline">
+        📊 Télécharger le modèle Excel
+      </a>
+    </div>
+    <div id="progressBar" class="mt-4 hidden">
+      <div class="h-3 bg-red-400" style="width: 90%;"></div>
+    </div>
+  </div>
+</div>
+<!-- Success Modal -->
+<div id="successModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white max-w-md w-full p-6 rounded shadow text-center">
+    <div class="text-green-600 text-4xl mb-4">✔</div>
+    <h3 class="text-xl font-bold mb-2">Importation réussie</h3>
+    <p id="successMessage" class="mb-6 text-sm text-gray-700 leading-relaxed"></p>
+    <button onclick="closeSuccessModal()" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">Fermer</button>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div id="errorModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white max-w-md w-full p-6 rounded shadow text-center">
+    <div class="text-red-600 text-4xl mb-4">✖</div>
+    <h3 class="text-xl font-bold mb-2">Problème d'importation</h3>
+    <div id="errorMessage" class="text-sm text-gray-700 mb-6 leading-relaxed text-left"></div>
+    <button onclick="closeErrorModal()" class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">Fermer</button>
+  </div>
+</div>
+<!-- Invalid File Format Modal -->
+<div id="fileFormatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-96">
+    <h2 class="text-lg font-semibold text-red-600 mb-4">Format de fichier invalide</h2>
+    <p>Veuillez sélectionner un fichier <strong>CSV</strong> ou <strong>Excel (.xlsx / .xls)</strong>.</p>
+    <div class="mt-4 text-right">
+      <button onclick="closeFileFormatModal()" class="bg-blue-500 text-white px-4 py-2 rounded">Fermer</button>
+    </div>
+  </div>
+</div>

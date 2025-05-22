@@ -1,0 +1,174 @@
+body {
+    background-color: #f5f9ff;
+    font-family: 'Inter', sans-serif;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+  .container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    padding: 2rem;
+    width: 350px;
+  }
+  
+  label {
+   color: text-gray-700;
+  }
+  input, button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  
+  button {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    font-weight: bold;
+  }
+  
+  button:hover {
+    background-color: #005fcc;
+  }
+  
+  input:focus {
+    border-color: #7ED957;
+    outline: none;
+  }
+  .alert-custom {
+    padding: 12px 20px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  
+  .alert-error {
+    background-color: #ffe5e5;
+    color: #d8000c;
+    border: 1px solid #d8000c;
+  }
+  
+  .alert-success {
+    background-color: #e6ffed;
+    color: #2e7d32;
+    border: 1px solid #2e7d32;
+  }
+  
+  .highlight {
+    background-color: #ebf060; /* light yellow (Tailwind's yellow-300) */
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+
+ /* === Dark mode global styling === */
+
+/* Page background */
+html.dark body {
+  background-color: #111827; /* Tailwind gray-900 */
+  color: white;
+}
+
+/* Forms */
+html.dark form {
+  background-color: #1f2937; /* gray-800 */
+  color: white;
+}
+
+/* Inputs, textareas, selects */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #374151; /* gray-700 */
+  color: white; 
+  border-color: #4b5563; /* gray-600 */
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #9ca3af; /* gray-400 */
+}
+
+/* Buttons */
+html.dark button {
+  background-color: #2563eb; /* blue-600 */
+  color: white;
+  border: none;
+}
+
+html.dark button:hover {
+  background-color: #1d4ed8; /* blue-700 */
+}
+
+/* tester label on dark mode */
+html.dark label {
+  color : white;
+}
+/* Cards / boxes */
+html.dark .card,
+html.dark .box,
+html.dark .panel {
+  background-color: #1f2937; /* gray-800 */
+  color: white;
+  border-color: #374151;
+}
+
+/* Sidebar */
+html.dark #sidebar {
+  background-color: #1e293b; /* slate-800 */
+  color: white;
+}
+
+/* Top header */
+html.dark header {
+  background-color: #0f172a; /* slate-900 */
+}
+
+/* Table */
+html.dark table {
+  background-color: #1f2937;
+  color: white;
+}
+html.dark thead {
+  background-color: #374151;
+}
+html.dark tr:nth-child(even) {
+  background-color: #2d3748;
+}
+
+/* Scrollbar */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
+  border-radius: 4px;
+}
+
+/* Links */
+html.dark a {
+  color: #60a5fa; /* blue-400 */
+}
+html.dark a:hover {
+  color: #3b82f6; /* blue-500 */
+}
+
+/* Alerts and modals (optional) */
+html.dark .modal,
+html.dark .alert {
+  background-color: #1e293b;
+  color: white;
+  border-color: #334155;
+}
+
+html.dark #main-content {
+  background-color: #111827; /* gray-900 */
+}
+

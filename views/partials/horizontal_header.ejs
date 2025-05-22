@@ -1,0 +1,87 @@
+    <header id="horizMenu" class="hidden md:flex bg-blue-400 dark:bg-gray-900 fixed top-0 left-0 w-full z-50 shadow h-14 items-center justify-between px-4 md:ml-64">
+
+    <div class="flex items-center space-x-4">
+        <button id="menuToggle" class="text-white dark:text-gray-300 focus:outline-none">
+            <i class="fas fa-bars text-2xl"></i>
+          </button>
+      <button id="themeToggle" class="text-white dark:text-gray-300 focus:outline-none">
+        <i class="fas fa-moon text-2xl"></i>
+      </button>
+      <a href="/settings/account">
+        <img 
+          src="/uploads/<%= user && user.profile_image ? user.profile_image : '/public/uploads/logo.png' %>" 
+          alt="Profil" 
+          class="h-8 w-8 rounded-full border-2 border-white cursor-pointer hover:opacity-80 transition duration-200">
+      </a>
+        </div>
+  </header>
+  <script>
+   
+    document.getElementById('menuToggle').addEventListener('click', function() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const horizMenu = document.getElementById('horizMenu');
+    const footer = document.getElementById('footer');
+   // vertical header 
+    if (sidebar.classList.contains('md:w-64')) {
+      sidebar.classList.remove('md:w-64');
+      sidebar.classList.add('w-0','overflow-hidden');
+    } else {
+      sidebar.classList.remove('w-0','overflow-hidden');
+      sidebar.classList.add('md:w-64');
+    }
+
+    // main content in layout
+    if (mainContent.classList.contains('md:ml-64')) {
+      mainContent.classList.remove('md:ml-64');
+      mainContent.classList.add('flex-1');
+    } else {
+      mainContent.classList.remove('flex-1');
+      mainContent.classList.add('md:ml-64');
+    }
+    // horizontal menu
+    if (horizMenu.classList.contains('md:ml-64')) {
+      horizMenu.classList.remove('md:ml-64');
+      horizMenu.classList.add('flex-1');
+    } else {
+      horizMenu.classList.remove('flex-1');
+      horizMenu.classList.add('md:ml-64');
+    }
+    // footer 
+    if (footer.classList.contains('md:ml-64')) {
+      footer.classList.remove('md:ml-64');
+      footer.classList.add('flex-1');
+    } else {
+      footer.classList.remove('flex-1');
+      footer.classList.add('md:ml-64');
+    }
+  });
+    // Light/Dark mode toggle
+  const savedTheme = localStorage.getItem('theme');
+  const icon = document.querySelector('#themeToggle i');
+  if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark');
+    if (icon) {
+      icon.classList.remove('fa-moon');
+      icon.classList.add('fa-sun');
+    }
+  } else {
+    if (icon) {
+      icon.classList.remove('fa-sun');
+      icon.classList.add('fa-moon');
+    }
+  }
+    document.getElementById('themeToggle').addEventListener('click', function() {
+      document.documentElement.classList.toggle('dark');
+      const icon = this.querySelector('i');
+      if(document.documentElement.classList.contains('dark')) {
+        localStorage.setItem('theme', 'dark');
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+      } else {
+        localStorage.setItem('theme', 'light');
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+      }
+    });
+  </script>

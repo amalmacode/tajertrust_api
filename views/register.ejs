@@ -1,0 +1,75 @@
+
+<div class="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+
+  <!-- Left part (image + slogan + contactez-nous) -->
+  <div class="hidden md:flex w-full md:w-3/5 bg-blue-200 items-center justify-center p-8">
+    <div class="text-center max-w-md">
+      <img src="/images/security.svg" alt="Sécurité" class="w-48 h-auto mx-auto mb-6">
+      <h2 class="text-3xl font-bold text-blue-700 mb-4">Sécurisez votre business en toute confiance</h2>
+      <p class="text-gray-600 mb-6">Notre plateforme vous aide à éviter les clients frauduleux et à protéger vos ventes.</p>
+      <a href="/contact_admin" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">Contactez-nous</a>
+    </div>
+  </div>
+
+  <!-- Right part (formulaire d’inscription) -->
+  <div class="dark:bg-gray-800  w-full md:w-2/5 bg-white flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+      <!-- Flash messages -->
+      <%- include('partials/flash') %>
+
+      <h1 class="text-xl font-bold text-blue-600 mb-4 text-center">Créer votre compte</h1>
+
+      <form action="/register" method="POST" class="space-y-4">
+        <div>
+          <label for="business_name" class="block text-sm font-medium text-gray-700 dark:text-gray-400">Nom de votre business</label>
+          <input type="text" id="business_name" name="business_name" required
+            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500  dark:text-gray-900">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Email</label>
+          <input type="email" name="email" required
+            class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-900" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Mot de passe</label>
+          <input type="password" name="password" required
+            class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-900" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Confirmer le mot de passe</label>
+          <input type="password" name="confirmPassword" required
+            class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-900" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
+            Instagram/TikTok (@username ou lien complet) </label>
+          <input type="text" name="social_link" required
+            class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-900" />
+          <p class="text-xs text-green-500 mt-1">
+            Après votre inscription, un code unique vous sera généré. Vous devrez l'ajouter temporairement à votre bio pour vérifier que ce compte vous appartient.
+          </p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Website (Optionnel)</label>
+          <input type="text" name="website"
+            class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-900" />
+        </div>
+
+        <button type="submit"
+          class="w-full bg-blue-600 text-white rounded-md p-2 hover:bg-blue-700 transition-colors">S'inscrire</button>
+      </form>
+
+      <p class="mt-4 text-center text-sm text-gray-500">
+        Vous avez déja un compte?
+        <a href="/login" class="text-blue-600 hover:underline">Se connecter</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+  

@@ -1,0 +1,85 @@
+<div class="min-h-screen p-6 bg-gray-50 pt-24 dark:bg-gray-800">
+    <div class="max-w-5xl mx-auto space-y-10">
+      <h1 class="text-2xl font-bold text-blue-600 mb-4 text-center">Envoyez nous votre message</h1>
+      <div class="text-center mt-4">
+        <p class="text-3xl font-semibold text-orange-400 typing-animation border-r-2 border-white-600 inline-block whitespace-nowrap overflow-hidden">
+          Content de vous recevoir
+        </p>
+      </div>
+      
+      <!-- Add this inside a <style> tag in your <head> or your CSS file -->
+      <style>
+      @keyframes typing {
+        from { width: 0 }
+        to { width: 90% }
+      }
+      @keyframes blink {
+      50% { border-color: transparent; }
+}
+      .typing-animation {
+        width: 0;
+        animation: typing 3s steps(26, end) forwards, blink 0.7s step-end infinite;
+      }
+      /* Hide the cursor after typing is done */
+.typing-animation::after {
+  content: '';
+  animation: none;
+  animation-delay: 3s;
+  animation-fill-mode: forwards;
+}
+      </style>
+      
+          <%- include('partials/flash') %>
+          <p>Vous avez des questions sur notre service ou besoin d'aide pour la configuration? Notre équipe est là pour vous aider! </p>
+  <form method="POST" class="space-y-4 dark:text-gray-900">
+    <input name="subject" type="text" placeholder="Sujet" class="w-full border px-3 py-2 rounded" required>
+    <textarea name="message" placeholder="Votre message..." rows="5" class="w-full border px-3 py-2 rounded" required></textarea>
+    <div class="flex justify-center mb-6">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-24 py-2 rounded">
+        Envoyer
+      </button>
+    </div>  
+  </form>
+  <section class="bg-white dark:bg-gray-900 py-12 px-6 sm:px-12">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-3xl font-bold text-blue-600 text-center mb-6">Protégez Votre Entreprise Contre la Fraude</h2>
+      
+      <p class="text-lg text-gray-700 dark:text-gray-300 text-center mb-10">
+        Chez <span class="font-semibold">TajerTrust</span>, nous comprenons les défis auxquels les vendeurs marocains font face concernant les commandes frauduleuses et les arnaques de paiement.
+        Notre service vous aide à protéger votre entreprise en identifiant les clients potentiellement frauduleux avant de traiter leurs commandes.
+      </p>
+  
+      <div class="grid md:grid-cols-3 gap-6 mb-10">
+        <!-- Vérification des Numéros -->
+        <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded shadow">
+          <h3 class="text-xl font-semibold text-blue-600 mb-2">📞 Vérification des Numéros</h3>
+          <p class="text-gray-700 dark:text-gray-300">Notre système compare les numéros de téléphone à une vaste base de données de fraudeurs connus.</p>
+        </div>
+  
+        <!-- Protection en Temps Réel -->
+        <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded shadow">
+          <h3 class="text-xl font-semibold text-blue-600 mb-2">🛡️ Protection en Temps Réel</h3>
+          <p class="text-gray-700 dark:text-gray-300">Recevez des alertes immédiates lorsqu'une commande suspecte est détectée.</p>
+        </div>
+  
+        <!-- Base de Données Communautaire -->
+        <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded shadow">
+          <h3 class="text-xl font-semibold text-blue-600 mb-2">🤝 Base de Données Communautaire</h3>
+          <p class="text-gray-700 dark:text-gray-300">Mise à jour par des vendeurs de confiance à travers le Maroc.</p>
+        </div>
+      </div>
+  
+      <div class="bg-blue-50 dark:bg-gray-700 p-6 rounded shadow">
+        <h3 class="text-2xl font-bold text-gray-800 dark:text-white mb-4">Comment Utiliser Notre Service ?</h3>
+        <ol class="list-decimal list-inside text-gray-700 dark:text-gray-200 space-y-2">
+          <li><span class="font-medium">Inscrivez-vous</span> pour un compte sur notre plateforme.</li>
+          <li><span class="font-medium">Intégrez</span> notre système à votre processus de commande.</li>
+          <li><span class="font-medium">Vérifiez</span> les numéros avant de traiter les commandes.</li>
+          <li><span class="font-medium">Signalez</span> les clients frauduleux pour aider la communauté.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+  
+</div>
+</div>

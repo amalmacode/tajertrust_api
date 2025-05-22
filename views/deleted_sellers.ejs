@@ -1,0 +1,33 @@
+<div class="min-h-screen p-6 bg-gray-50 pt-24">
+    <div class="max-w-6xl mx-auto space-y-6">
+      <h2 class="text-2xl font-bold mb-6 text-center">Vendeurs Supprimés</h2> 
+
+      <input type="text" id="searchDeleted" placeholder="Rechercher par email..." class="w-full p-2 border rounded shadow-sm mb-6">
+  
+      <div class="overflow-x-auto bg-white shadow rounded-lg">
+        <table class="min-w-full text-sm text-left text-gray-700" id="deletedTable">
+            <thead class="bg-red-100 text-red-800">
+                <tr>
+                  <th class="px-6 py-3 text-left font-semibold">Email du vendeur</th>
+                  <th class="px-6 py-3 text-left font-semibold">Email de l'admin</th>
+                  <th class="px-6 py-3 text-left font-semibold">Raison</th>
+                  <th class="px-6 py-3 text-left font-semibold">Date de suppression</th>
+                </tr>
+              </thead>
+          <tbody>
+            <% logs.forEach((log, index) => { %>
+              <tr class="<%= index % 2 === 0 ? 'bg-orange-50' : 'bg-orange-100' %> border-t hover:bg-orange-200 transition duration-150">
+                <td class="px-6 py-4"><%= log.seller_email %></td>
+                <td class="px-6 py-4"><%= log.admin_email %></td>
+                <td class="px-6 py-4"><%= log.reason %></td>
+                <td class="px-6 py-4"><%= log.deleted_at ? new Date(log.deleted_at).toLocaleString('fr-FR') : '—' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+          
+        </table>
+
+      </div>
+    </div>
+  </div>
+  
