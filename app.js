@@ -14,6 +14,11 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 
+// Test Connection Route : test.js
+const testRoutes = require('./routes/test'); // adjust path
+app.use('/', testRoutes);
+
+
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
