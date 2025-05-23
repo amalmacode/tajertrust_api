@@ -11,5 +11,19 @@ router.get('/test-db', async (req, res) => {
     res.status(500).send('Database connection failed');
   }
 });
+router.get('/db-tables', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error listing tables:', error);
+    res.status(500).send('Error listing tables');
+  }
+});
+
 
 module.exports = router;
