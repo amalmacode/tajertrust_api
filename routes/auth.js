@@ -117,7 +117,7 @@ router.post('/register', async (req, res) => {
     // Send confirmation email
     const verifyLink = `http://localhost:3000/verify?token=${verificationToken}`;
     
-    console.log("Sending confirmation email to:", email);
+    // console.log("Sending confirmation email to:", email);
     await transporter.sendMail({
       to: email,
       subject: "Confirmez votre email - TajerTrust",
@@ -185,7 +185,7 @@ router.post('/verify-social-check', async (req, res) => {
 
     const bio = await page.$eval('meta[name="description"]', el => el.content);
 
-    console.log("Bio found:", bio);
+    // console.log("Bio found:", bio);
 
     if (bio.includes(code)) {
       await pool.query(
@@ -264,7 +264,7 @@ router.post('/login', (req, res, next) => {
 });
 //  GET / POST CHECK
 router.get('/check', ensureAuthenticated, (req, res) => {
-  console.log('User in check page:', req.user); // Should show user info
+  // console.log('User in check page:', req.user); // Should show user info
   res.render('check', {
     title: 'Vérifier un numéro - TajerTrust',
     user: req.user,
@@ -346,8 +346,8 @@ let cleanedPhone = phone.replace(/\s+/g, ''); // remove all spaces
     // Get valid reasons from DB
   const reasons = await pool.query('SELECT reason  FROM blacklist_reasons');
   const validReasons = reasons.rows.map(row => row.reason);
-  console.log("resaons :" +validReasons);
-  console.log("Reason entred :" +reason);
+  // console.log("resaons :" +validReasons);
+  // console.log("Reason entred :" +reason);
 
   if (!reason || !validReasons.includes(reason)) {
     req.flash('error', "Veuillez sélectionner une raison valide.");
@@ -607,7 +607,7 @@ router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
     }
     const result = await pool.query("UPDATE sellers SET is_validated = true WHERE id = $1 RETURNING business_name", [req.params.id]);
     const validatedName = result.rows[0]?.business_name || "Inconnu";
-   console.log(validatedName+ " est validé");
+  //  console.log(validatedName+ " est validé");
 
     req.flash('success', `Le seller ${validatedName} a été validé avec succès.`);
     res.redirect('/pending_sellers?page='+currentPage);
@@ -628,11 +628,11 @@ router.post('/admin/delete_seller', ensureAdmin, async (req, res) => {
   try {
     // Get admin's email from session
     const adminEmail = req.user?.email;
-    console.log(' admin demandant suppression :', adminEmail);
+    // console.log(' admin demandant suppression :', adminEmail);
 
     // Optional: check if seller exists first
     const check = await pool.query('SELECT * FROM sellers WHERE id = $1', [seller_id]);
-    console.log(' CHECK SELLER :', check);
+    // console.log(' CHECK SELLER :', check);
 
     if (check.rows.length === 0) {
       req.flash('error', 'Vendeur introuvable.');
@@ -1276,7 +1276,7 @@ try {
   //   });
 
   const ext = path.extname(filePath).toLowerCase();
-console.log("extension:"+ext);
+// console.log("extension:"+ext);
   if (ext === '.csv') {
     // Parse CSV
   fs.createReadStream(filePath)
@@ -1305,12 +1305,12 @@ console.log("extension:"+ext);
   } else if (ext === '.xls' || ext === '.xlsx') {
     // Excel parsing
     const workbook = xlsx.readFile(filePath);
-    console.log("workbook:",workbook);
+    // console.log("workbook:",workbook);
     const sheetName = workbook.SheetNames[0];
-    console.log("sheetName:",sheetName);
+    // console.log("sheetName:",sheetName);
 
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' }); // keep empty cells as ''
-    console.log("sheetData:",sheetData);
+    // console.log("sheetData:",sheetData);
 
     for (const row of sheetData) {
       // promises.push(processRow(row));
