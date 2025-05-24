@@ -15,12 +15,12 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 
 // Test Connection Route : test.js / dbadmin
-const testRoutes = require('./routes/test'); // adjust path
-const dbAdminRoutes = require('./routes/dbadmin');
+// const testRoutes = require('./routes/test'); // adjust path
+// const dbAdminRoutes = require('./routes/dbadmin');
 
 const app = express();
-app.use('/', testRoutes); // test database connection
-app.use('/', dbAdminRoutes); // test dbadmin
+// app.use('/', testRoutes); // test database connection
+// app.use('/', dbAdminRoutes); // test dbadmin
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -41,7 +41,7 @@ app.use(express.static('public'));
 
 //use session before passport
 app.use(session({
-  secret: 'my_secret_key', // change to strong secret in production
+  secret: process.env.SESSION_SECRET, // change to strong secret in production
   resave: false,
   saveUninitialized: false ,
   cookie: {
