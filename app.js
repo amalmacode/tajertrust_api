@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
 const expressLayouts = require('express-ejs-layouts');
 const flash = require('connect-flash');
 const passport = require('passport');
@@ -15,11 +16,11 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 
 // Test Connection Route : test.js / dbadmin
-// const testRoutes = require('./routes/test'); // adjust path
+const testRoutes = require('./routes/test'); // adjust path
 // const dbAdminRoutes = require('./routes/dbadmin');
 
 const app = express();
-// app.use('/', testRoutes); // test database connection
+app.use('/', testRoutes); // test database connection
 // app.use('/', dbAdminRoutes); // test dbadmin
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -41,15 +42,18 @@ app.use(express.static('public'));
 
 //use session before passport
 app.use(session({
+    store: new pgSession({
+    pool: pool,                // your PG pool
+    tableName: 'session'       // optional, default is 'session'
+  }),
   secret: process.env.SESSION_SECRET, // change to strong secret in production
   resave: false,
   saveUninitialized: false ,
   cookie: {
     // ⚠️ Ne pas fixer maxAge ici directement si tu le changes dynamiquement dans /login
-    secure: false, // true si HTTPS (en production)
+    secure: true, // important: enables secure cookies on HTTPS (Render = always HTTPS)
     httpOnly: true,
   }
-  // store: MongoStore.create({ mongoUrl: 'mongodb://localhost/session-db' })
   
 }));
 
@@ -150,11 +154,7 @@ passport.deserializeUser(async (userSession, done) => {
 // we could write the code above in a separate file passport-config.js , w'll do it later
 
 app.use(flash()); // chnages to make notification in register page
-// takes care of messages above the pages
-// app.use((req, res, next) => {
-//   res.locals.messages = req.flash();
-//   next();
-// });
+
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
