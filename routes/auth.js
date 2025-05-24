@@ -117,7 +117,7 @@ router.post('/register', async (req, res) => {
     // Send confirmation email
     const verifyLink = `http://localhost:3000/verify?token=${verificationToken}`;
     
-    // console.log("Sending confirmation email to:", email);
+    console.log("Sending confirmation email to:", email);
     await transporter.sendMail({
       to: email,
       subject: "Confirmez votre email - TajerTrust",
@@ -185,7 +185,7 @@ router.post('/verify-social-check', async (req, res) => {
 
     const bio = await page.$eval('meta[name="description"]', el => el.content);
 
-    // console.log("Bio found:", bio);
+    console.log("Bio found:", bio);
 
     if (bio.includes(code)) {
       await pool.query(
@@ -346,8 +346,8 @@ let cleanedPhone = phone.replace(/\s+/g, ''); // remove all spaces
     // Get valid reasons from DB
   const reasons = await pool.query('SELECT reason  FROM blacklist_reasons');
   const validReasons = reasons.rows.map(row => row.reason);
-  // console.log("resaons :" +validReasons);
-  // console.log("Reason entred :" +reason);
+  console.log("resaons :" +validReasons);
+  console.log("Reason entred :" +reason);
 
   if (!reason || !validReasons.includes(reason)) {
     req.flash('error', "Veuillez sélectionner une raison valide.");
@@ -1276,7 +1276,7 @@ try {
   //   });
 
   const ext = path.extname(filePath).toLowerCase();
-// console.log("extension:"+ext);
+console.log("extension:"+ext);
   if (ext === '.csv') {
     // Parse CSV
   fs.createReadStream(filePath)
@@ -1305,12 +1305,12 @@ try {
   } else if (ext === '.xls' || ext === '.xlsx') {
     // Excel parsing
     const workbook = xlsx.readFile(filePath);
-    // console.log("workbook:",workbook);
+    console.log("workbook:",workbook);
     const sheetName = workbook.SheetNames[0];
-    // console.log("sheetName:",sheetName);
+    console.log("sheetName:",sheetName);
 
     const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' }); // keep empty cells as ''
-    // console.log("sheetData:",sheetData);
+    console.log("sheetData:",sheetData);
 
     for (const row of sheetData) {
       // promises.push(processRow(row));
