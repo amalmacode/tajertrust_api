@@ -13,6 +13,7 @@ const { setAdminFlag } = require('./middlewares/auth');
 
 require('dotenv').config();
 require('./routes/passport');
+require('./routes/tiktokStrategy');
 
 const authRoutes = require('./routes/auth');
 const staticRoutes = require('./routes/static');
