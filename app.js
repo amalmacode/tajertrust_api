@@ -41,21 +41,21 @@ app.use('/uploads', express.static('public/uploads'));
 app.use(express.static('public'));
 
 
-//use session before passport
+
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(session({
-    store: new pgSession({
-    pool: pool,                // your PG pool
-    tableName: 'session'       // optional, default is 'session'
-  }),
-  secret: process.env.SESSION_SECRET, // change to strong secret in production
+  store: isProduction ? new pgSession({
+    pool: pool,
+    tableName: 'session',
+  }) : undefined, // no store in development (uses memory)
+  secret: process.env.SESSION_SECRET || 'dev-secret',
   resave: false,
-  saveUninitialized: false ,
+  saveUninitialized: false,
   cookie: {
-    // ⚠️ Ne pas fixer maxAge ici directement si tu le changes dynamiquement dans /login
-    secure: true, // important: enables secure cookies on HTTPS (Render = always HTTPS)
+    secure: isProduction, // only secure in production
     httpOnly: true,
   }
-  
 }));
 
 // Passport initialization
