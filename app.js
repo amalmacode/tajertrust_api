@@ -12,6 +12,7 @@ const path = require('path');
 const { setAdminFlag } = require('./middlewares/auth');
 
 require('dotenv').config();
+require('./routes/passport');
 
 const authRoutes = require('./routes/auth');
 const staticRoutes = require('./routes/static');
@@ -171,6 +172,21 @@ app.use((req, res, next) => {
 
 app.use('/', staticRoutes);
 app.use('/', authRoutes);
+// Routes
+app.get('/login_tiktok', (req, res) => res.render('login_tiktok',{layout: false}));
+app.get('/profile', ensureAuth, (req, res) => res.render('profile', { user: req.user }));
+
+app.get('/auth/tiktok', passport.authenticate('tiktok'));
+
+app.get('/auth/tiktok/callback', 
+  passport.authenticate('tiktok', { failureRedirect: '/' }),
+  (req, res) => res.redirect('/profile')
+);
+
+function ensureAuth(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  res.redirect('/');
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

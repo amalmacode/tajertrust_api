@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Logged In</title>
+</head>
+<body>
+  <h1>Welcome, <%= user.displayName || user.username %></h1>
+  <pre><%= JSON.stringify(user, null, 2) %></pre>
+</body>
+</html>
