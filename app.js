@@ -44,6 +44,7 @@ app.use(express.static('public'));
 
 const isProduction = process.env.NODE_ENV === 'production';
 console.log("is production?:"+isProduction);
+app.set('trust proxy', 1); // trust first proxy (Render uses 1)
 app.use(session({
   store: isProduction ? new pgSession({
     pool: pool,
