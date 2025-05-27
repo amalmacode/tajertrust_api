@@ -43,7 +43,7 @@ app.use(express.static('public'));
 
 
 const isProduction = process.env.NODE_ENV === 'production';
-
+console.log("is production?:"+isProduction);
 app.use(session({
   store: isProduction ? new pgSession({
     pool: pool,
