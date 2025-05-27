@@ -14,6 +14,7 @@ const { setAdminFlag } = require('./middlewares/auth');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const staticRoutes = require('./routes/static');
 
 // Test Connection Route : test.js / dbadmin
 const testRoutes = require('./routes/test'); // adjust path
@@ -167,6 +168,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/', staticRoutes);
 app.use('/', authRoutes);
 
 const PORT = process.env.PORT || 3000;
