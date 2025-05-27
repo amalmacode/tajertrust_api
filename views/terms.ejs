@@ -1,46 +1,142 @@
-<%- include('partials/header', { title: 'Conditions d’utilisation - TajerTrust' }) %>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>TajerTrust – Protégez votre boutique</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/accueil.css">
 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+
+</head>
+
+<body class="min-h-screen p-6 bg-gray-50 pt-24 dark:bg-gray-800">
+<header>
+  <div class="container">
+      <nav class="navbar">
+          <a href="/" class="logo">
+              <span class="logo-icon">🛡️</span> Tajer<span>Trust</span>
+          </a>
+          <div class="mobile-menu-toggle">
+              <span></span>
+              <span></span>
+              <span></span>
+          </div>
+          <ul class="nav-links">
+              <li><a href="/#features">Fonctionnalités</a></li>
+              <li><a href="/#how-to-use">Comment Utiliser</a></li>
+              <li><a href="/contact_admin">Contact</a></li>
+              <li><a href="/login" class="btn">Se connecter</a></li>
+              <li><a href="/register" class="btn">S'inscrire</a></li>
+          </ul>
+      </nav>
+  </div>
+</header>
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-4">Conditions Générales d’Utilisation</h1>
+  <h1 class="text-2xl font-bold mb-6">Conditions Générales d’Utilisation (CGU)</h1>
 
-  <p class="mb-4">
-    Bienvenue sur TajerTrust. En accédant à notre plateforme, vous acceptez les présentes conditions générales d'utilisation.
-    Si vous n’acceptez pas ces conditions, veuillez ne pas utiliser le site.
+  <p class="mb-6">
+    Bienvenue sur <strong>TajerTrust</strong>. En accédant à notre plateforme, vous acceptez les présentes Conditions Générales d’Utilisation dans leur intégralité. Ces conditions encadrent l’utilisation des services proposés par TajerTrust. Si vous n’acceptez pas l’une des clauses, veuillez ne pas utiliser notre plateforme.
   </p>
 
-  <h2 class="text-xl font-semibold mt-6 mb-2">1. Description du service</h2>
+  <h2 class="text-xl font-semibold mt-8 mb-4"> Présentation du service</h2>
   <p class="mb-4">
-    TajerTrust est une plateforme destinée aux vendeurs en ligne, permettant de signaler des acheteurs frauduleux en mode paiement à la livraison (COD).
+    TajerTrust est une plateforme innovante dédiée aux professionnels de la vente en ligne opérant en mode Paiement à la Livraison (COD). Elle permet aux vendeurs de signaler et consulter les comportements frauduleux des acheteurs afin de sécuriser les transactions et réduire les pertes dues aux refus de paiement ou commandes fictives. 
+  </p>
+  <p class="mb-4">
+    En mutualisant les données de la communauté, TajerTrust agit comme un réseau de confiance et d’alerte interprofessionnel pour contribuer à un commerce en ligne plus fiable et transparent.
   </p>
 
-  <h2 class="text-xl font-semibold mt-6 mb-2">2. Accès au service</h2>
+  <h2 class="text-xl font-semibold mt-8 mb-4">Conditions d'accès et d'inscription</h2>
   <p class="mb-4">
-    Pour accéder aux fonctionnalités de la plateforme, les utilisateurs doivent s'inscrire en tant que vendeurs professionnels et être validés par l’équipe TajerTrust.
+    L’accès aux fonctionnalités avancées est réservé aux vendeurs professionnels. L’utilisateur doit :
   </p>
-
-  <h2 class="text-xl font-semibold mt-6 mb-2">3. Obligations de l’utilisateur</h2>
   <ul class="list-disc pl-6 mb-4">
-    <li>Fournir des informations exactes et complètes lors de l'inscription.</li>
-    <li>Ne pas utiliser la plateforme à des fins frauduleuses ou illégales.</li>
-    <li>Respecter la confidentialité des données des autres utilisateurs.</li>
+    <li>Fournir des informations complètes, exactes et vérifiables lors de l'inscription.</li>
+    <li>Accepter les CGU et notre politique de confidentialité.</li>
+    <li>Être validé manuellement par notre équipe après vérification des informations fournies.</li>
+  </ul>
+  <p class="mb-4">
+    TajerTrust se réserve le droit de refuser ou de retirer l’accès à un utilisateur en cas de manquement grave ou usage abusif de la plateforme.
+  </p>
+
+  <h2 class="text-xl font-semibold mt-8 mb-4"> Engagements et responsabilités de l'utilisateur</h2>
+  <p class="mb-4">Tout utilisateur s’engage à :</p>
+  <ul class="list-disc pl-6 mb-4">
+    <li>Utiliser la plateforme dans le respect de la loi et de la bonne foi commerciale.</li>
+    <li>Ne signaler que des cas de fraude réels et justifiés, sous peine de sanctions ou suppression de compte.</li>
+    <li>Respecter la confidentialité des données et ne pas utiliser les informations obtenues à des fins malveillantes.</li>
+    <li>Mettre à jour ses informations régulièrement et immédiatement signaler toute suspicion de piratage ou d’abus.</li>
   </ul>
 
-  <h2 class="text-xl font-semibold mt-6 mb-2">4. Propriété intellectuelle</h2>
+  <h2 class="text-xl font-semibold mt-8 mb-4"> Droits de propriété intellectuelle</h2>
   <p class="mb-4">
-    Tous les contenus du site (textes, logos, interfaces, etc.) sont la propriété exclusive de TajerTrust et ne peuvent être utilisés sans autorisation écrite.
+    Tous les contenus présents sur TajerTrust, incluant les textes, images, logos, codes sources, bases de données et interfaces, sont protégés par les lois relatives à la propriété intellectuelle. Toute reproduction, modification ou réutilisation sans autorisation écrite est strictement interdite.
   </p>
 
-  <h2 class="text-xl font-semibold mt-6 mb-2">5. Responsabilité</h2>
+  <h2 class="text-xl font-semibold mt-8 mb-4"> Limitation de responsabilité</h2>
   <p class="mb-4">
-    TajerTrust ne saurait être tenu responsable de l’exactitude ou de la légalité des informations fournies par ses utilisateurs.
+    TajerTrust agit en tant qu’intermédiaire technique. Nous ne sommes pas responsables de l’exactitude, de la véracité ou de la légalité des informations publiées par les utilisateurs. Chaque vendeur reste seul responsable des données qu’il communique sur la plateforme.
+  </p>
+  <p class="mb-4">
+    Néanmoins, nous nous engageons à réagir promptement en cas de signalement d’abus ou de données manifestement erronées.
   </p>
 
-  <h2 class="text-xl font-semibold mt-6 mb-2">6. Modifications</h2>
+  <h2 class="text-xl font-semibold mt-8 mb-4">Évolution des conditions</h2>
   <p class="mb-4">
-    TajerTrust se réserve le droit de modifier les présentes CGU à tout moment. Toute modification sera publiée sur cette page.
+    Les présentes CGU peuvent être modifiées à tout moment afin de s’adapter aux évolutions légales, techniques ou commerciales de TajerTrust. Toute mise à jour sera publiée sur cette page avec sa date de révision.
+  </p>
+  <p class="mb-4">
+    En continuant à utiliser la plateforme après publication des changements, vous acceptez les nouvelles conditions.
   </p>
 
-  <p class="mt-6">Dernière mise à jour : Mai 2025</p>
+  <h2 class="text-xl font-semibold mt-8 mb-4">Contact</h2>
+  <p class="mb-4">
+    Pour toute question relative à ces conditions, signalement d'abus ou demande d’assistance, vous pouvez nous contacter à l’adresse suivante :
+  </p>
+  <p class="mb-4 font-semibold">
+    📧 <a href="mailto:support@tajertrust.com" class="text-blue-600 hover:underline">support@tajertrust.com</a>
+  </p>
+
+  <p class="mt-10 text-sm text-gray-500 italic">Dernière mise à jour : Mai 2025</p>
 </div>
 
-<%- include('partials/footer') %>
+
+ <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>TajerTrust</h3>
+                    <p>Protection contre la fraude pour les vendeurs marocains. Vérifiez les numéros de téléphone, recevez des alertes et contribuez à un commerce plus sûr.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Liens Rapides</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Accueil</a></li>
+                        <li><a href="/#features">Fonctionnalités</a></li>
+                        <li><a href="/#how-to-use">Comment Utiliser</a></li>
+                        <li><a href="/contact_admin">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Légal</h3>
+                    <ul class="footer-links">
+                        <li><a href="/terms">Conditions d'utilisation</a></li>
+                        <li><a href="/privacy">Politique de confidentialité</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2025 TajerTrust. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+ <%- include('partials/accueil-script') %>
+
+</html>
