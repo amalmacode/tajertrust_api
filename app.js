@@ -1,3 +1,7 @@
+require('dotenv').config();
+require('./routes/passport');
+require('./routes/tiktokStrategy');
+
 const express = require('express');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
@@ -10,10 +14,6 @@ const pool = require('./db'); // adjust this to your db file
 const path = require('path');
 // const MongoStore = require('connect-mongo');
 const { setAdminFlag } = require('./middlewares/auth');
-
-require('dotenv').config();
-require('./routes/passport');
-require('./routes/tiktokStrategy');
 
 const authRoutes = require('./routes/auth');
 const staticRoutes = require('./routes/static');
@@ -41,7 +41,6 @@ app.locals.isActive = function (currentPath, linkPath) {
 app.use('/uploads', express.static('public/uploads'));
 // make sure the csv file is public 
 app.use(express.static('public'));
-
 
 
 const isProduction = process.env.NODE_ENV === 'production';
