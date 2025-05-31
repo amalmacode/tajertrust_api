@@ -4,7 +4,7 @@ const router = express.Router();
 
 const clientId = process.env.INSTAGRAM_CLIENT_ID;
 const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
-const redirectUri = process.env.INSTA_REDIRECT_URI; // e.g. https://yourapp.onrender.com/profile/instagram/callback
+const redirectUri = process.env.INSTAGRAM_REDIRECT_URI; // e.g. https://yourapp.onrender.com/profile/instagram/callback
 
 // Step 1: Redirect to Instagram login
 // router.get('/instagram/login', (req, res) => {
@@ -28,8 +28,8 @@ router.get('/instagram/callback', async (req, res) => {
   const code = req.query.code;
 
   try {
-    // Exchange code for access token
-    const tokenResponse = await axios.get(`https://graph.facebook.com/v19.0/oauth/access_token`, {
+    // Step 1: Exchange code for access token
+    const tokenRes = await axios.post(`https://graph.facebook.com/v19.0/oauth/access_token`, null, {
       params: {
         client_id: clientId,
         client_secret: clientSecret,
@@ -38,51 +38,48 @@ router.get('/instagram/callback', async (req, res) => {
       },
     });
 
-    const accessToken = tokenResponse.data.access_token;
+    const accessToken = tokenRes.data.access_token;
 
-    // Get user ID
-    const meResponse = await axios.get(`https://graph.facebook.com/v19.0/me`, {
+    // Step 2: Get Page connected to user
+    const pagesRes = await axios.get(`https://graph.facebook.com/me/accounts`, {
       params: {
-        fields: 'id,name',
         access_token: accessToken,
       },
     });
 
-    const fbUserId = meResponse.data.id;
-
-    // Get pages connected to user
-    const pagesResponse = await axios.get(`https://graph.facebook.com/v19.0/${fbUserId}/accounts`, {
-      params: { access_token: accessToken },
-    });
-
-    const page = pagesResponse.data.data[0]; // Assuming 1st page
+    const page = pagesRes.data.data[0];
     const pageAccessToken = page.access_token;
+    const pageId = page.id;
 
-    // Get Instagram business account ID from the page
-    const igAccountResponse = await axios.get(`https://graph.facebook.com/v19.0/${page.id}`, {
+    // Step 3: Get Instagram Business Account ID
+    const igRes = await axios.get(`https://graph.facebook.com/${pageId}`, {
       params: {
         fields: 'instagram_business_account',
         access_token: pageAccessToken,
       },
     });
 
-    const igUserId = igAccountResponse.data.instagram_business_account.id;
+    const igUserId = igRes.data.instagram_business_account.id;
 
-    // Get Instagram user profile
-    const igProfile = await axios.get(`https://graph.facebook.com/v19.0/${igUserId}`, {
+    // Step 4: Fetch Instagram Profile Data
+    const profileRes = await axios.get(`https://graph.facebook.com/${igUserId}`, {
       params: {
         fields: 'username,biography,profile_picture_url',
         access_token: pageAccessToken,
       },
     });
 
-    const igData = igProfile.data;
-    res.send(`<h2>Welcome ${igData.username}</h2><p>Bio: ${igData.biography}</p><img src="${igData.profile_picture_url}" width="100" />`);
+    const profile = profileRes.data;
 
-  } catch (err) {
-    console.error('Error:', err.response?.data || err.message);
+    // Render simple profile view
+    res.send(`
+      <h2>Welcome ${profile.username}</h2>
+      <p><strong>Bio:</strong> ${profile.biography || 'No bio set'}</p>
+      <img src="${profile.profile_picture_url}" alt="Profile Picture" width="150" />
+    `);
+  } catch (error) {
+    console.error('Instagram login error:', error.response?.data || error.message);
     res.status(500).send('Instagram login failed.');
   }
 });
-
 module.exports = router;
