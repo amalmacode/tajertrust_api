@@ -193,8 +193,17 @@ app.use('/profile', profileRoutes); // manage titok insta login
 // }
 // Landing page to trigger login
 app.get('/login-instagram', (req, res) => {
-  res.render('loginInst',{title:"instagram login"});
-});
+  res.render('loginInst',{
+      title: 'insta login - TajerTrust',
+      layout: false, // This disables the default layout for this render
+      messages : {
+        error: req.flash('error'),
+        success: req.flash('success')
+      },
+      currentPath: req.path
+    });
+  });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
