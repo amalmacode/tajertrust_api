@@ -12,10 +12,17 @@ const redirectUri = process.env.INSTAGRAM_REDIRECT_URI; // e.g. https://yourapp.
 //   res.redirect(igAuthUrl);
 // });
 router.get('/instagram/login', (req, res) => {
-  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?` +
+  // const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?` +
+  //   `client_id=${process.env.INSTAGRAM_CLIENT_ID}` +
+  //   `&redirect_uri=${encodeURIComponent(process.env.INSTAGRAM_REDIRECT_URI)}` +
+  //   `&scope=instagram_basic,user_profile,user_media,pages_show_list` +
+  //   `&response_type=code` +
+  //   `&state=trustcart123`;
+
+  const authUrl = `https://api.instagram.com/oauth/authorize?` +
     `client_id=${process.env.INSTAGRAM_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(process.env.INSTAGRAM_REDIRECT_URI)}` +
-    `&scope=instagram_basic,instagram_graph_user_profile,pages_show_list` +
+    `&scope=user_profile,user_media` +
     `&response_type=code` +
     `&state=trustcart123`;
 
