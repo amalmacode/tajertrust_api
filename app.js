@@ -21,6 +21,8 @@ const staticRoutes = require('./routes/static');
 // Test Connection Route : test.js / dbadmin
 const testRoutes = require('./routes/test'); // adjust path
 // const dbAdminRoutes = require('./routes/dbadmin');
+const profileRoutes = require('./routes/profile');
+
 
 const app = express();
 app.use('/', testRoutes); // test database connection
@@ -172,21 +174,27 @@ app.use((req, res, next) => {
 
 app.use('/', staticRoutes);
 app.use('/', authRoutes);
+app.use('/profile', profileRoutes); // manage titok insta login
+
 // Routes
-app.get('/login_tiktok', (req, res) => res.render('login_tiktok',{layout: false}));
-app.get('/profile', ensureAuth, (req, res) => res.render('profile', { user: req.user }));
+// app.get('/login_tiktok', (req, res) => res.render('login_tiktok',{layout: false}));
+// app.get('/profile', ensureAuth, (req, res) => res.render('profile', { user: req.user }));
 
-app.get('/auth/tiktok', passport.authenticate('tiktok'));
+// app.get('/auth/tiktok', passport.authenticate('tiktok'));
 
-app.get('/auth/tiktok/callback', 
-  passport.authenticate('tiktok', { failureRedirect: '/' }),
-  (req, res) => res.redirect('/profile')
-);
+// app.get('/auth/tiktok/callback', 
+//   passport.authenticate('tiktok', { failureRedirect: '/' }),
+//   (req, res) => res.redirect('/profile')
+// );
 
-function ensureAuth(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.redirect('/');
-}
+// function ensureAuth(req, res, next) {
+//   if (req.isAuthenticated()) return next();
+//   res.redirect('/');
+// }
+// Landing page to trigger login
+app.get('/login-instagram', (req, res) => {
+  res.render('loginInst');
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
