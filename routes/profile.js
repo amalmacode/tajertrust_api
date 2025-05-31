@@ -7,10 +7,21 @@ const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
 const redirectUri = process.env.INSTA_REDIRECT_URI; // e.g. https://yourapp.onrender.com/profile/instagram/callback
 
 // Step 1: Redirect to Instagram login
+// router.get('/instagram/login', (req, res) => {
+//   const igAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user_profile&response_type=code`;
+//   res.redirect(igAuthUrl);
+// });
 router.get('/instagram/login', (req, res) => {
-  const igAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user_profile&response_type=code`;
-  res.redirect(igAuthUrl);
+  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?` +
+    `client_id=${process.env.INSTAGRAM_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(process.env.INSTAGRAM_REDIRECT_URI)}` +
+    `&scope=instagram_basic,instagram_graph_user_profile,pages_show_list` +
+    `&response_type=code` +
+    `&state=trustcart123`;
+
+  res.redirect(authUrl);
 });
+
 
 // Step 2: Handle callback and exchange code for access token
 router.get('/instagram/callback', async (req, res) => {
