@@ -193,7 +193,7 @@ app.use('/profile', profileRoutes); // manage titok insta login
 // }
 // Landing page to trigger login
 app.get('/login-instagram', (req, res) => {
-  res.render('loginInst');
+  res.render('loginInst',{title:"instagram login"});
 });
 
 const PORT = process.env.PORT || 3000;
