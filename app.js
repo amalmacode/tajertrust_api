@@ -1,6 +1,5 @@
 require('dotenv').config();
 require('./routes/passport');
-require('./routes/tiktokStrategy');
 
 const express = require('express');
 const session = require('express-session');
@@ -18,15 +17,7 @@ const { setAdminFlag } = require('./middlewares/auth');
 const authRoutes = require('./routes/auth');
 const staticRoutes = require('./routes/static');
 
-// Test Connection Route : test.js / dbadmin
-const testRoutes = require('./routes/test'); // adjust path
-// const dbAdminRoutes = require('./routes/dbadmin');
-const profileRoutes = require('./routes/profile');
-
-
 const app = express();
-app.use('/', testRoutes); // test database connection
-// app.use('/', dbAdminRoutes); // test dbadmin
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -174,23 +165,8 @@ app.use((req, res, next) => {
 
 app.use('/', staticRoutes);
 app.use('/', authRoutes);
-app.use('/profile', profileRoutes); // manage titok insta login
 
 // Routes
-// app.get('/login_tiktok', (req, res) => res.render('login_tiktok',{layout: false}));
-// app.get('/profile', ensureAuth, (req, res) => res.render('profile', { user: req.user }));
-
-// app.get('/auth/tiktok', passport.authenticate('tiktok'));
-
-// app.get('/auth/tiktok/callback', 
-//   passport.authenticate('tiktok', { failureRedirect: '/' }),
-//   (req, res) => res.redirect('/profile')
-// );
-
-// function ensureAuth(req, res, next) {
-//   if (req.isAuthenticated()) return next();
-//   res.redirect('/');
-// }
 // Landing page to trigger login
 app.get('/login-instagram', (req, res) => {
   res.render('loginInst',{
@@ -203,7 +179,6 @@ app.get('/login-instagram', (req, res) => {
       currentPath: req.path
     });
   });
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

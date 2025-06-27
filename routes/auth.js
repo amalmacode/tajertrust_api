@@ -138,22 +138,204 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// GET : Verify social page
-router.get('/verify-social', (req, res) => {
-  const { code } = req.query;
-  if (!code) {
-    req.flash('error', 'Code de vérification manquant.');
-    return res.redirect('/register');
-  }
-  res.render('verify_social', {
-    title: 'Verifier Votre compte',
-    code,
-    messages: {
-      success: req.flash('success'),
-      error: req.flash('error')
-    },
-    currentPath: req.path
-  });
+// Facebook App Configuration
+const FACEBOOK_CONFIG = {
+    APP_ID: process.env.FACEBOOK_APP_ID,
+    APP_SECRET: process.env.FACEBOOK_APP_SECRET,
+    REDIRECT_URI: process.env.FACEBOOK_REDIRECT_URI || 'https://tajertrust.com/auth/instagram/callback'
+};
+// Step 1: Social verification page (after registration)
+router.get('/verify-social', async (req, res) => {
+    const { code } = req.query;
+    
+    if (!code) {
+        req.flash('error', 'Code de vérification manquant.');
+        return res.redirect('/register');
+    }
+    
+    try {
+        // Find seller by verify_code
+        const sellerResult = await pool.query(
+            'SELECT * FROM sellers WHERE verify_code = $1',
+            [code]
+        );
+        
+        if (sellerResult.rows.length === 0) {
+            req.flash('error', 'Code de vérification invalide.');
+            return res.redirect('/register');
+        }
+        
+        const seller = sellerResult.rows[0];
+        
+        // Check if already verified
+        if (seller.is_social_verified) {
+            req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
+            return res.redirect('/login');
+        }
+        
+        // Determine social platform from their provided link
+        const isInstagram = seller.social_link.includes('instagram.com');
+        const isTikTok = seller.social_link.includes('tiktok.com');
+        
+        res.render('verify-social', {
+            seller,
+            code,
+            isInstagram,
+            isTikTok,
+            facebookAppId: FACEBOOK_CONFIG.APP_ID,
+            messages: {
+                success: req.flash('success'),
+                error: req.flash('error')
+            },
+            title: 'Vérification du compte social - TajerTrust',
+            layout: 'layout',
+            currentPath: req.path
+        });
+        
+    } catch (err) {
+        console.error('Verify social error:', err);
+        req.flash('error', 'Erreur lors de la vérification.');
+        res.redirect('/register');
+    }
+});
+
+// Step 2: Instagram verification initiation
+router.get('/auth/instagram/verify', async (req, res) => {
+    const { code } = req.query; // verify_code from the verification page
+    
+    if (!code) {
+        req.flash('error', 'Code de vérification manquant.');
+        return res.redirect('/register');
+    }
+    
+    // Store the verify_code in session for callback
+    req.session.verifyCode = code;
+    
+    // Redirect to Facebook OAuth for Instagram verification
+    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.APP_ID}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&scope=business_management,pages_show_list,instagram_business_basic&response_type=code&state=verify_instagram_${code}`;
+    
+    res.redirect(authUrl);
+});
+
+// Step 3: Instagram verification callback
+router.get('/auth/instagram/callback', async (req, res) => {
+    const { code, state } = req.query;
+    const verifyCode = req.session.verifyCode;
+    
+    if (!state || !state.startsWith('verify_instagram_') || !verifyCode) {
+        req.flash('error', 'Session de vérification invalide.');
+        return res.redirect('/register');
+    }
+    
+    try {
+        // Exchange code for access token
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&code=${code}`);
+        
+        const access_token = tokenResponse.data.access_token;
+        
+        // Get Instagram business account
+        const instagramAccount = await getInstagramBusinessAccount(access_token);
+        
+        if (instagramAccount) {
+            // Update seller with verified Instagram data
+            await pool.query(`
+                UPDATE sellers 
+                SET 
+                    is_social_verified = true,
+                    social_verified_at = NOW(),
+                    instagram_username = $1,
+                    instagram_account_id = $2,
+                    instagram_account_type = $3,
+                    instagram_page_name = $4,
+                    instagram_followers_count = $5
+                WHERE verify_code = $6
+            `, [
+                instagramAccount.username,
+                instagramAccount.id,
+                instagramAccount.account_type,
+                instagramAccount.page_name,
+                instagramAccount.followers_count || 0,
+                verifyCode
+            ]);
+            
+            // Clear session
+            delete req.session.verifyCode;
+            
+            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
+            res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
+            
+        } else {
+            req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur connecté à une page Facebook.');
+            res.redirect(`/verify-social?code=${verifyCode}&error=no_instagram`);
+        }
+        
+    } catch (error) {
+        console.error('Instagram verification error:', error);
+        req.flash('error', 'Erreur lors de la vérification Instagram. Veuillez réessayer.');
+        res.redirect(`/verify-social?code=${verifyCode}&error=verification_failed`);
+    }
+});
+
+// Helper function to get Instagram business account (same as before)
+async function getInstagramBusinessAccount(access_token) {
+    try {
+        // Get user's businesses
+        const businessesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${access_token}`);
+        const businesses = businessesResponse.data.data || [];
+        
+        // Get pages for each business
+        let instagramAccounts = [];
+        for (const business of businesses) {
+            try {
+                const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/${business.id}/owned_pages?fields=id,name,access_token,instagram_business_account&access_token=${access_token}`);
+                const pages = pagesResponse.data.data || [];
+                
+                for (const page of pages) {
+                    if (page.instagram_business_account) {
+                        // Get Instagram account details
+                        const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.instagram_business_account.id}?fields=id,username,account_type,followers_count&access_token=${page.access_token || access_token}`);
+                        
+                        instagramAccounts.push({
+                            ...igResponse.data,
+                            page_name: page.name,
+                            page_id: page.id
+                        });
+                    }
+                }
+            } catch (err) {
+                console.log(`Error processing business ${business.name}:`, err.message);
+            }
+        }
+        
+        // Return first Instagram account found
+        return instagramAccounts[0] || null;
+        
+    } catch (error) {
+        console.error('Error getting Instagram account:', error);
+        return null;
+    }
+}
+
+// Step 4: Skip social verification (optional - for TikTok or later)
+router.post('/skip-social-verification', async (req, res) => {
+    const { code } = req.body;
+    
+    try {
+        // Mark as "skipped" but not verified
+        await pool.query(`
+            UPDATE sellers 
+            SET social_verified_at = NOW()
+            WHERE verify_code = $1
+        `, [code]);
+        
+        req.flash('success', 'Vérification reportée. Vérifiez votre email pour continuer.');
+        res.redirect('/login');
+        
+    } catch (err) {
+        console.error('Skip verification error:', err);
+        req.flash('error', 'Erreur lors du report de vérification.');
+        res.redirect(`/verify-social?code=${code}`);
+    }
 });
 
 // POST : verify social check (verifier le code saisi dans BIO)

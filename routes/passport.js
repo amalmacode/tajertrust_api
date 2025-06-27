@@ -20,29 +20,6 @@ passport.use(new LocalStrategy({
   }
 ));
 
-// — TikTok OAuth strategy —
-passport.use('tiktok', new OAuth2Strategy({
-    authorizationURL:  'https://www.tiktok.com/v2/auth/authorize/',
-    tokenURL:          'https://open.tiktokapis.com/v2/oauth/token/',
-    clientID:          process.env.TIKTOK_CLIENT_ID,
-    clientSecret:      process.env.TIKTOK_CLIENT_SECRET,
-    callbackURL:       process.env.TIKTOK_CALLBACK_URL,
-    scope:             ['user.info.basic'],
-    state:             true
-  },
-  async (accessToken, refreshToken, params, done) => {
-    try {
-      // fetch profile from TikTok API…
-      const res = await fetch('https://open.tiktokapis.com/v2/user/info/', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      const json = await res.json();
-      return done(null, { username: json.data.user.username });
-    } catch (err) {
-      done(err);
-    }
-  }
-));
 
 passport.serializeUser((user, done) => {
   done(null, user);
