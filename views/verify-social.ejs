@@ -80,7 +80,47 @@
                     <div class="platform-icon">📷</div>
                     <h3>Vérification Instagram Business</h3>
                     <p>Confirmez que vous êtes le propriétaire de ce compte Instagram Business pour renforcer la confiance des clients.</p>
-                      <div class="verification-actions">
+                      <!-- DEBUT DEMO -->
+                       <!-- Ajoutez cette section dans votre verify-social.ejs, juste avant les boutons normaux -->
+
+<% if (isInstagram && !seller.is_social_verified) { %>
+    <!-- Section spéciale pour Facebook Reviewers -->
+    <div class="facebook-reviewers-section" style="background: linear-gradient(135deg, #1877f2, #42a5f5); color: white; padding: 25px; border-radius: 12px; margin: 30px 0; text-align: center;">
+        <h3>🔍 FOR FACEBOOK APP REVIEWERS</h3>
+        <p><strong>Special Demo Mode Available</strong></p>
+        <p>Click below to see a complete demonstration of Instagram verification with simulated success (shows what would happen with instagram_business_basic permission)</p>
+        
+        <div style="margin: 20px 0;">
+            <a href="/demo-oauth-page?code=<%= code %>" class="btn" style="background: white; color: #1877f2; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; margin: 10px;">
+                🎬 DEMO: Complete Instagram Verification Flow
+            </a>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-top: 15px;">
+            <p><strong>This demo shows:</strong></p>
+            <ul style="text-align: left; margin: 10px 0;">
+                <li>✅ Successful Facebook OAuth authorization</li>
+                <li>✅ Instagram username and ID fetching (simulated)</li>
+                <li>✅ Account ownership confirmation</li>
+                <li>✅ Verified badge creation</li>
+                <li>✅ Complete user experience with permission granted</li>
+            </ul>
+        </div>
+        
+        <p style="font-size: 14px; margin-top: 15px;">
+            <strong>Note:</strong> This demonstrates exactly what would happen if instagram_business_basic permission was approved.
+        </p>
+    </div>
+    
+    <!-- Séparateur -->
+    <div style="text-align: center; margin: 30px 0;">
+        <hr style="width: 50%; opacity: 0.3;">
+        <p style="color: #666; margin: 20px 0;"><strong>Regular User Flow (Currently Shows Permission Error)</strong></p>
+    </div>
+<% } %>
+
+                    <!-- FIN DEMO -->
+                    <div class="verification-actions">
                         <a href="/auth/instagram/verify?code=<%= code %>" class="btn btn-instagram">
                             📷 Vérifier mon Instagram Business
                         </a>
@@ -111,18 +151,6 @@
                         </ul>
                     </div>
 
-                    <!-- <div class="verification-actions">
-                        <a href="/auth/instagram/verify?code=<%= code %>" class="btn btn-instagram">
-                            📷 Vérifier mon Instagram Business
-                        </a>
-                        
-                        <form action="/skip-social-verification" method="POST" style="margin-top: 15px;">
-                            <input type="hidden" name="code" value="<%= code %>">
-                            <button type="submit" class="btn btn-link" onclick="return confirm('Êtes-vous sûr de vouloir ignorer la vérification? Cela réduira votre crédibilité.')">
-                                Ignorer pour l'instant
-                            </button>
-                        </form>
-                    </div> -->
                 </div>
             <% } else if (isTikTok) { %>
                 <!-- TikTok - Coming Soon -->
