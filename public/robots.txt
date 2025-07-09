@@ -2,11 +2,13 @@ User-agent: *
 Allow: /
 
 User-agent: facebookexternalhit
+Allow: /login
 Allow: /register
 Allow: /privacy
 Allow: /
 
 User-agent: facebookexternalhit/1.1
+Allow: /login
 Allow: /register
 Allow: /privacy
 Allow: /
