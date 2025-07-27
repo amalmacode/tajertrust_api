@@ -115,7 +115,7 @@ router.post('/register', async (req, res) => {
     );
     
     // Send confirmation email
-    const verifyLink = `http://localhost:3000/verify?token=${verificationToken}`;
+   const verifyLink = `${process.env.verifyLink}/verify?token=${verificationToken}`;
     
     console.log("Sending confirmation email to:", email);
     await transporter.sendMail({
@@ -142,7 +142,8 @@ router.post('/register', async (req, res) => {
 const FACEBOOK_CONFIG = {
     APP_ID: process.env.FACEBOOK_APP_ID,
     APP_SECRET: process.env.FACEBOOK_APP_SECRET,
-    REDIRECT_URI: process.env.FACEBOOK_REDIRECT_URI || 'https://tajertrust.com/auth/instagram/callback'
+    REDIRECT_URI: process.env.FACEBOOK_REDIRECT_URI || 'https://tajertrust.com/auth/instagram/callback',
+    LOGIN_REDIRECT_URI : process.env.FACEBOOK_LOGIN_REDIRECT_URI
 };
 // Step 1: Social verification page (after registration)
 router.get('/verify-social', async (req, res) => {
@@ -1526,181 +1527,6 @@ router.get('/',(req, res) => {
   }
 });
 
-// Mode Démo pour Facebook App Review
-// Ajoutez ceci à votre routes/auth.js
-
-// Route de démo spéciale pour Facebook reviewers
-// router.get('/auth/instagram/demo-review', async (req, res) => {
-//     const { code } = req.query; // verify_code from verification page
-    
-//     if (!code) {
-//         req.flash('error', 'Code de vérification manquant.');
-//         return res.redirect('/register');
-//     }
-    
-//     try {
-//         // SIMULATION : Ce qui se passerait avec instagram_business_basic permission
-//         const simulatedInstagramData = {
-//             id: '17841449592255338',
-//             username: 'demo_business_morocco', 
-//             account_type: 'BUSINESS',
-//             followers_count: 1247,
-//             page_name: 'Demo Business Page Morocco'
-//         };
-        
-//         // Mettre à jour le vendeur avec les données simulées
-//         await pool.query(`
-//             UPDATE sellers 
-//             SET 
-//                 is_social_verified = true,
-//                 social_verified_at = NOW(),
-//                 instagram_username = $1,
-//                 instagram_account_id = $2,
-//                 instagram_account_type = $3,
-//                 instagram_page_name = $4,
-//                 instagram_followers_count = $5
-//             WHERE verify_code = $6
-//         `, [
-//             simulatedInstagramData.username,
-//             simulatedInstagramData.id,
-//             simulatedInstagramData.account_type,
-//             simulatedInstagramData.page_name,
-//             simulatedInstagramData.followers_count,
-//             code
-//         ]);
-        
-//         req.flash('success', `✅ Instagram Business Account Verified Successfully! Username: @${simulatedInstagramData.username}, Account ID: ${simulatedInstagramData.id} - This demonstrates what would happen with instagram_business_basic permission.`);
-//         res.redirect(`/verify-social?code=${code}&verified=true&demo=true`);
-        
-//     } catch (error) {
-//         console.error('Demo verification error:', error);
-//         req.flash('error', 'Demo verification failed.');
-//         res.redirect(`/verify-social?code=${code}`);
-//     }
-// });
-
-// // Route pour simuler le flux Facebook OAuth complet
-// router.get('/auth/facebook/demo-oauth', (req, res) => {
-//     const { code } = req.query;
-    
-//     // Simuler le délai OAuth
-//     setTimeout(() => {
-//         res.redirect(`/auth/instagram/demo-review?code=${code}`);
-//     }, 2000); // 2 secondes pour simuler le processus OAuth
-// });
-
-// // Page de démo OAuth pour les reviewers
-// router.get('/demo-oauth-page', (req, res) => {
-//     const { code } = req.query;
-    
-//     res.send(`
-// <!DOCTYPE html>
-// <html>
-// <head>
-//     <title>Facebook OAuth Demo - TajerTrust</title>
-//     <style>
-//         body { 
-//             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-//             background: #f0f2f5;
-//             padding: 50px;
-//             text-align: center;
-//         }
-//         .oauth-container {
-//             background: white;
-//             max-width: 400px;
-//             margin: 0 auto;
-//             padding: 30px;
-//             border-radius: 8px;
-//             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-//         }
-//         .facebook-logo {
-//             width: 40px;
-//             height: 40px;
-//             background: #1877f2;
-//             border-radius: 50%;
-//             margin: 0 auto 20px;
-//             display: flex;
-//             align-items: center;
-//             justify-content: center;
-//             color: white;
-//             font-weight: bold;
-//         }
-//         .permissions-list {
-//             text-align: left;
-//             background: #f8f9fa;
-//             padding: 15px;
-//             border-radius: 5px;
-//             margin: 20px 0;
-//         }
-//         .demo-note {
-//             background: #fff3cd;
-//             padding: 15px;
-//             border-radius: 5px;
-//             margin: 20px 0;
-//             border-left: 4px solid #ffc107;
-//         }
-//         .btn {
-//             background: #1877f2;
-//             color: white;
-//             padding: 10px 20px;
-//             border: none;
-//             border-radius: 5px;
-//             cursor: pointer;
-//             margin: 10px;
-//         }
-//         .btn-cancel {
-//             background: #42a5f5;
-//         }
-//     </style>
-// </head>
-// <body>
-//     <div class="oauth-container">
-//         <div class="facebook-logo">f</div>
-//         <h2>Authorize TajerTrust</h2>
-//         <p>TajerTrust wants to access your Facebook account</p>
-        
-//         <div class="permissions-list">
-//             <h4>This app will receive:</h4>
-//             <ul>
-//                 <li>✓ instagram_business_basic - Read basic Instagram business account info</li>
-//                 <li>✓ business_management - Access Business Manager pages</li>
-//                 <li>✓ pages_show_list - List Facebook pages</li>
-//             </ul>
-//         </div>
-        
-//         <div class="demo-note">
-//             <strong>🎬 DEMO MODE - FOR FACEBOOK REVIEWERS</strong><br>
-//             This simulates the successful OAuth flow that would occur with the instagram_business_basic permission.
-//         </div>
-        
-//         <div style="margin-top: 30px;">
-//             <button class="btn" onclick="window.location.href='/auth/facebook/demo-oauth?code=${code}'">
-//                 Continue as Demo User
-//             </button>
-//             <button class="btn btn-cancel" onclick="window.history.back()">
-//                 Cancel
-//             </button>
-//         </div>
-        
-//         <div style="margin-top: 20px; font-size: 12px; color: #65676b;">
-//             <a href="/privacy" target="_blank">Privacy Policy</a> | 
-//             <a href="/terms" target="_blank">Terms of Service</a>
-//         </div>
-//     </div>
-    
-//     <script>
-//         // Auto-continue after 3 seconds for demo
-//         setTimeout(() => {
-//             document.querySelector('.btn').click();
-//         }, 3000);
-//     </script>
-// </body>
-// </html>
-//     `);
-// });
-
-// Mode Démo pour Facebook App Review
-// Ajoutez ceci à votre routes/auth.js
 
 // Route de démo spéciale pour Facebook reviewers
 router.get('/auth/instagram/demo-review', async (req, res) => {
@@ -2021,4 +1847,62 @@ router.get('/demo-oauth-page', (req, res) => {
 </html>
     `);
 });
+
+// Instagram Login callback (different from registration)
+router.get('/auth/instagram/login-callback', async (req, res) => {
+    const { code, state } = req.query;
+    
+    if (!state || !state.startsWith('login_instagram_')) {
+        req.flash('error', 'Session de connexion invalide.');
+        return res.redirect('/login');
+    }
+    
+    try {
+        // Exchange code for access token
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.LOGIN_REDIRECT_URI)}&code=${code}`);
+        
+        const access_token = tokenResponse.data.access_token;
+        
+        // Get Instagram business account
+        const instagramAccount = await getInstagramBusinessAccount(access_token);
+        
+        if (instagramAccount) {
+            // Find existing user with this Instagram account
+            const result = await pool.query(`
+                SELECT * FROM sellers 
+                WHERE instagram_account_id = $1 
+                AND is_social_verified = true
+            `, [instagramAccount.id]);
+            
+            if (result.rows.length > 0) {
+                const user = result.rows[0];
+                
+                // Log user in
+                req.session.user = {
+                    id: user.id,
+                    email: user.email,
+                    business_name: user.business_name,
+                    instagram_username: user.instagram_username
+                };
+                
+                req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
+                res.redirect('/check');
+                
+            } else {
+                req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
+                res.redirect('/register');
+            }
+            
+        } else {
+            req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur.');
+            res.redirect('/login');
+        }
+        
+    } catch (error) {
+        console.error('Instagram login error:', error);
+        req.flash('error', 'Erreur lors de la connexion Instagram. Veuillez réessayer.');
+        res.redirect('/login');
+    }
+});
+
 module.exports = router;
