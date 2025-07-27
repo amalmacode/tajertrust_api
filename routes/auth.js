@@ -1859,7 +1859,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
     
     try {
         // Exchange code for access token
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.LOGIN_REDIRECT_URI)}&code=${code}`);
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/instagram/login-callback')}&code=${code}`);
         
         const access_token = tokenResponse.data.access_token;
         
@@ -1886,7 +1886,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
                 };
                 
                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
-                res.redirect('/check');
+                res.redirect('/dashboard');
                 
             } else {
                 req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
