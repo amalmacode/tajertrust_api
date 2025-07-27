@@ -280,26 +280,86 @@ router.get('/auth/instagram/callback', async (req, res) => {
 // Helper function to get Instagram business account (same as before)
 async function getInstagramBusinessAccount(access_token) {
     try {
-        console.log('Getting basic Instagram/Facebook user info...');
+        console.log('Getting Instagram Business account...');
         
-        // Just get basic Facebook user info (this will work with current permissions)
-        const userResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=id,name,email&access_token=${access_token}`);
-        const userInfo = userResponse.data;
+        // First, get user's Facebook pages
+        const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
+        console.log('Facebook pages found:', pagesResponse.data.data?.length || 0);
         
-        console.log('User info received:', userInfo);
+        if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
+            // Loop through each page to find Instagram Business accounts
+            for (const page of pagesResponse.data.data) {
+                try {
+                    console.log(`Checking page: ${page.name} (${page.id})`);
+                    
+                    // Check if this page has an Instagram Business account
+                    const instagramResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+                    
+                    if (instagramResponse.data.instagram_business_account) {
+                        const igAccountId = instagramResponse.data.instagram_business_account.id;
+                        console.log(`Found Instagram Business account: ${igAccountId}`);
+                        
+                        // Get Instagram account details
+                        const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username,account_type,followers_count,name&access_token=${page.access_token}`);
+                        
+                        const igAccount = igDetailsResponse.data;
+                        console.log('Instagram account details:', igAccount);
+                        
+                        return {
+                            id: igAccount.id,
+                            username: igAccount.username,
+                            account_type: igAccount.account_type || 'BUSINESS',
+                            page_name: page.name,
+                            followers_count: igAccount.followers_count || 0,
+                            access_token: access_token,
+                            page_access_token: page.access_token
+                        };
+                    } else {
+                        console.log(`No Instagram Business account found for page: ${page.name}`);
+                    }
+                } catch (pageError) {
+                    console.log(`Error checking page ${page.name}:`, pageError.response?.data || pageError.message);
+                }
+            }
+        }
         
-        // Return mock Instagram business account data for demo purposes
+        // If no Instagram Business account found, try Instagram Basic Display API
+        console.log('No Instagram Business account found, trying Instagram Basic Display...');
+        
+        try {
+            const userResponse = await axios.get(`https://graph.instagram.com/me?fields=id,username,account_type&access_token=${access_token}`);
+            const userInfo = userResponse.data;
+            
+            console.log('Instagram Basic Display user info:', userInfo);
+            
+            return {
+                id: userInfo.id,
+                username: userInfo.username,
+                account_type: userInfo.account_type || 'PERSONAL',
+                page_name: userInfo.username,
+                followers_count: 0, // Basic Display API doesn't provide follower count
+                access_token: access_token
+            };
+            
+        } catch (basicError) {
+            console.log('Instagram Basic Display also failed:', basicError.response?.data || basicError.message);
+        }
+        
+        // Last resort: return Facebook user info but mark it clearly
+        console.log('Falling back to Facebook user info...');
+        const fbUserResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${access_token}`);
+        
         return {
-            id: userInfo.id,
-            username: userInfo.name.replace(/\s+/g, '').toLowerCase(), // Convert name to username format
-            account_type: 'BUSINESS', // Mock as business account
-            page_name: userInfo.name,
-            followers_count: Math.floor(Math.random() * 10000), // Mock follower count for demo
+            id: fbUserResponse.data.id,
+            username: fbUserResponse.data.name.replace(/\s+/g, '').toLowerCase(),
+            account_type: 'FACEBOOK_USER', // Mark this as Facebook user, not Instagram
+            page_name: fbUserResponse.data.name,
+            followers_count: 0,
             access_token: access_token
         };
         
     } catch (error) {
-        console.error('Error getting user info:', error.response?.data || error.message);
+        console.error('Error getting Instagram account:', error.response?.data || error.message);
         return null;
     }
 }
