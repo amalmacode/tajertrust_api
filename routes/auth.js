@@ -1852,27 +1852,37 @@ router.get('/demo-oauth-page', (req, res) => {
 router.get('/auth/instagram/login-callback', async (req, res) => {
     const { code, state } = req.query;
     
+    console.log('Login callback received:', { code: !!code, state });
+    
     if (!state || !state.startsWith('login_instagram_')) {
+        console.log('Invalid state:', state);
         req.flash('error', 'Session de connexion invalide.');
         return res.redirect('/login');
     }
     
     try {
+        console.log('Exchanging code for token...');
         // Exchange code for access token
         const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/instagram/login-callback')}&code=${code}`);
         
+        console.log('Token response received');
         const access_token = tokenResponse.data.access_token;
         
+        console.log('Getting Instagram business account...');
         // Get Instagram business account
         const instagramAccount = await getInstagramBusinessAccount(access_token);
+        console.log('Instagram account:', instagramAccount);
         
         if (instagramAccount) {
+            console.log('Searching for user with Instagram ID:', instagramAccount.id);
             // Find existing user with this Instagram account
             const result = await pool.query(`
                 SELECT * FROM sellers 
                 WHERE instagram_account_id = $1 
                 AND is_social_verified = true
             `, [instagramAccount.id]);
+            
+            console.log('Database query result:', result.rows.length, 'users found');
             
             if (result.rows.length > 0) {
                 const user = result.rows[0];
@@ -1886,7 +1896,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
                 };
                 
                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
-                res.redirect('/check');
+                res.redirect('/dashboard');
                 
             } else {
                 req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
@@ -1894,12 +1904,17 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
             }
             
         } else {
+            console.log('No Instagram account found');
             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur.');
             res.redirect('/login');
         }
         
     } catch (error) {
-        console.error('Instagram login error:', error);
+        console.error('Instagram login error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
         req.flash('error', 'Erreur lors de la connexion Instagram. Veuillez réessayer.');
         res.redirect('/login');
     }
