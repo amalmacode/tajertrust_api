@@ -1886,7 +1886,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
                 };
                 
                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
-                res.redirect('/dashboard');
+                res.redirect('/check');
                 
             } else {
                 req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
