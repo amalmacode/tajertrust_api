@@ -1862,8 +1862,17 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
     
     try {
         console.log('Exchanging code for token...');
+        
+        // Detect environment and use appropriate redirect URI
+        const isProduction = process.env.NODE_ENV === 'production' || req.get('host').includes('tajertrust.com');
+        const redirectUri = isProduction 
+            ? 'https://tajertrust.com/auth/instagram/login-callback'
+            : 'http://localhost:3000/auth/instagram/login-callback';
+            
+        console.log('Using redirect URI:', redirectUri);
+        
         // Exchange code for access token
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent('http://localhost:3000/auth/instagram/login-callback')}&code=${code}`);
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         
         console.log('Token response received');
         const access_token = tokenResponse.data.access_token;
@@ -1896,7 +1905,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
                 };
                 
                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
-                res.redirect('/dashboard');
+                res.redirect('/check');
                 
             } else {
                 req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
