@@ -169,7 +169,8 @@ app.use((req, res, next) => {
     res.locals.user = req.user || null;
     res.locals.currentUser = req.user || req.session.user || null;
     res.locals.sessionUser = req.session.user || null;
-    
+    res.locals.currentPath = req.path; // Add currentPath
+
     // For backward compatibility
     if (!req.user && req.session.user) {
         res.locals.user = req.session.user;
