@@ -24,12 +24,12 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 // voir si le seller s'est connecté
 function ensureAuthenticated(req, res, next) {
-    if (req.isAuthenticated()) {
-      return next();
+    if (req.isAuthenticated() || req.session.user) {
+        return next();
     }
     req.flash('error', 'Veuillez vous connecter pour accéder à cette page.');
     res.redirect('/login');
-  }
+}
   
   // s'assurer du fait que le seller est verifié
   function ensureVerifiedSeller(req, res, next) {

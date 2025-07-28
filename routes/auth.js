@@ -277,57 +277,7 @@ router.get('/auth/instagram/callback', async (req, res) => {
     }
 });
 
-// Helper function to get Instagram business account (same as before)
-async function getInstagramBusinessAccount(access_token) {
-    try {
-        console.log('Getting Instagram Business account for demo...');
-        
-        // Get Facebook user info (this works with current permissions)
-        const fbUserResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=id,name,email&access_token=${access_token}`);
-        console.log('Facebook user info:', fbUserResponse.data);
-        
-        // For Meta app review - create a realistic demo response
-        // This shows how your app WOULD work with the permissions
-        const mockInstagramAccounts = [
-            {
-                id: `ig_${fbUserResponse.data.id}_1`,
-                username: 'business_account_1',
-                account_type: 'BUSINESS',
-                page_name: 'Demo Business Page 1',
-                followers_count: 5420
-            },
-            {
-                id: `ig_${fbUserResponse.data.id}_2`, 
-                username: 'business_account_2',
-                account_type: 'BUSINESS',
-                page_name: 'Demo Business Page 2',
-                followers_count: 12500
-            }
-        ];
-        
-        // For demo purposes, return the first mock account
-        // In production, this would be real Instagram Business API data
-        const selectedAccount = mockInstagramAccounts[0];
-        
-        console.log('Demo Instagram Business account selected:', selectedAccount);
-        
-        return {
-            id: selectedAccount.id,
-            username: selectedAccount.username,
-            account_type: selectedAccount.account_type,
-            page_name: selectedAccount.page_name,
-            followers_count: selectedAccount.followers_count,
-            access_token: access_token,
-            // Add a flag to indicate this is demo data
-            is_demo: true,
-            demo_note: 'This is demo data. Real Instagram Business API integration pending permission approval.'
-        };
-        
-    } catch (error) {
-        console.error('Error in demo Instagram function:', error.response?.data || error.message);
-        return null;
-    }
-}
+
 
 // Step 4: Skip social verification (optional - for TikTok or later)
 router.post('/skip-social-verification', async (req, res) => {
@@ -1860,6 +1810,58 @@ router.get('/demo-oauth-page', (req, res) => {
     `);
 });
 
+
+// Helper function to get Instagram business account (same as before)
+async function getInstagramBusinessAccount(access_token) {
+    try {
+        console.log('Getting Instagram Business account for demo...');
+        
+        // Get Facebook user info (this works with current permissions)
+        const fbUserResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=id,name,email&access_token=${access_token}`);
+        console.log('Facebook user info:', fbUserResponse.data);
+        
+        // For Meta app review - create a realistic demo response
+        // This shows how your app WOULD work with the permissions
+        const mockInstagramAccounts = [
+            {
+                id: `ig_${fbUserResponse.data.id}_1`,
+                username: 'business_account_1',
+                account_type: 'BUSINESS',
+                page_name: 'Demo Business Page 1',
+                followers_count: 5420
+            },
+            {
+                id: `ig_${fbUserResponse.data.id}_2`, 
+                username: 'business_account_2',
+                account_type: 'BUSINESS',
+                page_name: 'Demo Business Page 2',
+                followers_count: 12500
+            }
+        ];
+        
+        // For demo purposes, return the first mock account
+        // In production, this would be real Instagram Business API data
+        const selectedAccount = mockInstagramAccounts[0];
+        
+        console.log('Demo Instagram Business account selected:', selectedAccount);
+        
+        return {
+            id: selectedAccount.id,
+            username: selectedAccount.username,
+            account_type: selectedAccount.account_type,
+            page_name: selectedAccount.page_name,
+            followers_count: selectedAccount.followers_count,
+            access_token: access_token,
+            // Add a flag to indicate this is demo data
+            is_demo: true,
+            demo_note: 'This is demo data. Real Instagram Business API integration pending permission approval.'
+        };
+        
+    } catch (error) {
+        console.error('Error in demo Instagram function:', error.response?.data || error.message);
+        return null;
+    }
+}
 // Instagram Login callback (different from registration)
 router.get('/auth/instagram/login-callback', async (req, res) => {
     const { code, state } = req.query;
@@ -1916,7 +1918,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
                     instagram_username: user.instagram_username
                 };
                 
-                // req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
+                req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
                 res.redirect('/ma_blacklist');
                 
             } else {
