@@ -108,116 +108,20 @@
     <% } %>
   </nav>
 </div> -->
-
-
-<header id="sidebar" class="bg-white shadow fixed top-0 left-0 w-full z-50 md:w-64 md:h-screen md:flex md:flex-col md:items-start md:py-8 dark:bg-gray-800 ">
-  <div class="px-4 flex justify-between items-center md:flex-col md:items-start md:space-y-8 w-full">
-    <div class="flex items-center space-x-2 md:justify-center md:w-full">
-      <img src="/images/logo.png" alt="Logo" class="h-8 w-8 object-contain" />
-      <span class="text-xl font-bold text-blue-600">TajerTrust</span>
-    </div>
-    <button id="burger" class="md:hidden focus:outline-none z-[9999] p-2 rounded bg-blue-200">
-      <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-      </svg>
-    </button>
-    <!-- Desktop Navigation -->
-     <nav class="hidden md:flex md:flex-col md:space-y-4 md:pl-4">
-      <% if (!user) { %>
-        <a href="/" class="<%= isActive(currentPath, '/accueil') %>">
-          <i class="fas fa-search mr-2"></i> Home
-        </a>
-        <a href="/login" class="<%= isActive(currentPath, '/login') %>">
-          <i class="fas fa-sign-in-alt mr-2"></i> Se connecter
-        </a>
-        <a href="/register" class="<%= isActive(currentPath, '/register') %>">
-          <i class="fas fa-user-plus mr-2"></i> S'inscrire
-        </a>
-        <a href="/contact_admin" class="<%= isActive(currentPath, '/contact_admin') %>">
-          <i class="fas fa-envelope mr-2"></i> Contact
-        </a>
-      <% } else { %>
-       
-        <a href="/check" class="<%= isActive(currentPath, '/check') %>">
-          <i class="fas fa-search mr-2"></i> Vérifier numéro
-        </a>
-        <a href="/blacklist_add" class="<%= isActive(currentPath, '/blacklist_add') %>">
-          <i class="fas fa-ban mr-2"></i> Blacklister un numéro
-        </a>
-        <a href="/ma_blacklist" class="<%= isActive(currentPath, '/ma_blacklist') %>">
-          <i class="fas fa-list-alt mr-2"></i> Ma Blacklist
-        </a>
-        <a href="/contact_admin" class="<%= isActive(currentPath, '/contact_admin') %>">
-          <i class="fas fa-envelope mr-2"></i> Contact
-        </a>
-        <div class="group relative">
-          <a href="#" class="text-gray-500 hover:text-blue-500 flex items-center">
-            <i class="fas fa-cog mr-2"></i> Paramètres
-            <i class="fas fa-chevron-down ml-auto transition-transform group-hover:rotate-180"></i>
-          </a>
-          <div class="ml-6 mt-2 flex flex-col space-y-1">
-            <a href="/settings/account" class="<%= isActive(currentPath, '/settings/account') %>">
-              <i class="fas fa-user mr-2"></i> Compte
-            </a>
-          </div>
-        </div>
-        
-        <a href="/faq" class="<%= isActive(currentPath, '/faq') %>">
-          <i class="fas fa-question-circle mr-2"></i> FAQ
-        </a>
-        <a href="/logout" class="<%= isActive(currentPath, '/logout') %>">
-          <i class="fas fa-sign-out-alt mr-2"></i> Se déconnecter
-        </a>
-      <% } %>
-    </nav>
-  </div>
-</header>
-
-<!-- Mobile Menu (Right slide-in) -->
-<div id="mobileMenu" class="fixed top-0 right-0 h-full w-64 bg-white shadow-lg transform translate-x-full transition-transform duration-300 z-[9999] md:hidden dark:bg-gray-800">
-  <div class="p-4 border-b flex justify-between items-center">
-    <span class="text-lg font-bold text-blue-600">Menu</span>
-    <button id="closeMenu" class="text-gray-700 text-2xl leading-none">&times;</button>
-  </div>
-  <nav class="flex flex-col space-y-4 p-4">
-    <% if (!user) { %>
-      <a href="/login" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-sign-in-alt mr-2"></i> Se connecter
-      </a>
-      <a href="/register" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-user-plus mr-2"></i> S'inscrire
-      </a>
+<header style="background: red; padding: 20px;">
+    <h1>DEBUG HEADER</h1>
+    <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+        <p>LOGGED IN: <%= currentUser.business_name %></p>
+        <nav>
+            <a href="/check">Check</a> | 
+            <a href="/blacklist_add">Blacklist</a> | 
+            <a href="/logout">Logout</a>
+        </nav>
     <% } else { %>
-      <a href="/check" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-search mr-2"></i> Vérifier numéro
-      </a>
-      <a href="/blacklist_add" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-ban mr-2"></i> Blacklister un numéro
-      </a>
-    
-      <a href="/ma_blacklist" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-list-alt mr-2"></i> Ma Blacklist
-      </a>
-      <a href="/contact_admin" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-envelope mr-2"></i> Contact
-      </a>
-      <div class="group relative">
-        <a href="#" class="text-gray-500 hover:text-blue-500 flex items-center">
-          <i class="fas fa-cog mr-2"></i> Paramètres
-          <i class="fas fa-chevron-down ml-auto transition-transform group-hover:rotate-180"></i>
-        </a>
-        <div class="ml-6 mt-2 flex flex-col space-y-1">
-          <a href="/settings/account" class="<%= isActive(currentPath, '/settings/account') %>">
-            <i class="fas fa-user mr-2"></i> Compte
-          </a>
-        </div>
-      </div>
-      <a href="/faq" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-question-circle mr-2"></i> FAQ
-      </a>
-      <a href="/logout" class="text-grey-200 hover:text-blue-500">
-        <i class="fas fa-sign-out-alt mr-2"></i> Se déconnecter
-      </a>
+        <p>NOT LOGGED IN</p>
+        <nav>
+            <a href="/login">Login</a> | 
+            <a href="/register">Register</a>
+        </nav>
     <% } %>
-  </nav>
-</div>
+</header>
