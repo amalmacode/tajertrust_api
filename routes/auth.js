@@ -459,11 +459,12 @@ router.get('/blacklist_add', ensureAuthenticated, async(req, res) => {
 
   const result = await pool.query('SELECT reason FROM blacklist_reasons');
   const reasons = result.rows.map(row => row.reason);
-
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
   res.render('blacklist_add', {
     title: 'Ajouter à la Blacklist',
     reasons,
-    user: req.user,
+    user: currentUser,
     messages: {
       success: req.flash('success'),
       error: req.flash('error')
@@ -475,8 +476,10 @@ router.get('/blacklist_add', ensureAuthenticated, async(req, res) => {
 // POST: Add to Blacklist
 router.post('/blacklist_add', ensureAuthenticated, async (req, res) => {
   const { phone, reason } = req.body;
-  const seller_id = req.user.id;
-
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
+  const seller_id = currentUser.id;
+  
   // Validation for Moroccan phone number
   // Accepts 06 12 34 56 78 or 0612345678 or +212 6 12 34 56 78
 let cleanedPhone = phone.replace(/\s+/g, ''); // remove all spaces
@@ -529,16 +532,19 @@ if (existing.rows.length > 0) {
 // GET My Blacklist
 router.get('/ma_blacklist', ensureAuthenticated, async (req, res) => {
   try {
+
+    // Get user from either Passport or session
+    const currentUser = req.user || req.session.user;
     const result = await pool.query(`
       SELECT id, phone, reason, to_char(date, 'DD/MM/YYYY') as date
       FROM blacklisted_phones
       WHERE seller_id = $1
       ORDER BY date DESC
-    `, [req.user.id]);
+    `, [currentUser.id]);
 
     res.render('ma_blacklist', {
       title: 'Ma Liste Noire - TajerTrust',
-      user: req.user,
+      user: currentUser,
       messages: {
         success: req.flash('success'),
         error: req.flash('error')
