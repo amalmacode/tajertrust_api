@@ -44,6 +44,15 @@ const uploadCsv = multer({ storage: storage });
 // Show login/register pages
 // GET login page
 router.get('/login', (req, res) => {
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
+   // If user is already logged in, redirect to check page
+  if (currentUser && currentUser.id) {
+    req.flash('info', 'Vous êtes déjà connecté.');
+    return res.redirect('/check');
+  }
+
+  // If not logged in, show login page
   res.render('login', {
     title: 'Login - TajerTrust',
     messages: {
@@ -53,7 +62,18 @@ router.get('/login', (req, res) => {
     currentPath: req.path
   });
 });
-router.get('/register', (req, res) => res.render('register', {
+
+// GET REGISTER
+router.get('/register', (req, res) => {
+   // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
+  // If user is already logged in, redirect to check page
+  if (currentUser && currentUser.id) {
+    req.flash('info', 'Vous êtes déjà connecté.');
+    return res.redirect('/check');
+  }
+
+  res.render('register', {
   messages: {
     success: req.flash('success'),
     error: req.flash('error')
@@ -61,7 +81,8 @@ router.get('/register', (req, res) => res.render('register', {
   title: 'Register - TajerTrust',
   layout: 'layout',
   currentPath: req.path // Not required, but explicit
-}));
+ });
+});
 
 // POST Register
 router.post('/register', async (req, res) => {
@@ -143,7 +164,7 @@ const FACEBOOK_CONFIG = {
     APP_ID: process.env.FACEBOOK_APP_ID,
     APP_SECRET: process.env.FACEBOOK_APP_SECRET,
     REDIRECT_URI: process.env.FACEBOOK_REDIRECT_URI || 'https://tajertrust.com/auth/instagram/callback',
-    LOGIN_REDIRECT_URI : process.env.FACEBOOK_LOGIN_REDIRECT_URI
+    LOGIN_REDIRECT_URI : process.env.FACEBOOK_LOGIN_REDIRECT_URI || 'https://tajertrust.com/auth/instagram/login-callback'
 };
 // Step 1: Social verification page (after registration)
 router.get('/verify-social', async (req, res) => {
@@ -1262,7 +1283,8 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
 router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
   upload.single('profile')(req, res, function (err) {
     const errorMessage = err?.message || '';
-
+    // Get user from either Passport or session
+     const currentUser = req.user || req.session.user;
     if (err instanceof multer.MulterError || errorMessage === 'Only images are allowed') 
       {
       req.flash('error', 'Seules les images sont autorisées.');
@@ -1286,7 +1308,7 @@ router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
     try {
     const newImageName = req.file.filename;
     // 1. Get current profile image name from DB
-    const result = await pool.query('SELECT profile_image FROM sellers WHERE id = $1', [req.user.id]);
+    const result = await pool.query('SELECT profile_image FROM sellers WHERE id = $1', [currentUser.id]);
     const oldImageName = result.rows[0]?.profile_image;
 
     // 2. Delete old image file if it exists and is not a default placeholder
@@ -1297,7 +1319,8 @@ router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
       }
     }
     // 3. Update new profile image name in DB
-    await pool.query('UPDATE sellers SET profile_image = $1 WHERE id = $2', [newImageName, req.user.id]);
+    await pool.query('UPDATE sellers SET profile_image = $1 WHERE id = $2', 
+      [newImageName, currentUser.id]);
 
     // Update session
     req.user.profile_image = newImageName;
@@ -1453,7 +1476,9 @@ console.log("extension:"+ext);
 router.get('/',(req, res) => {
   // Get user from either Passport or session
   const currentUser = req.user || req.session.user;
-  if (req.isAuthenticated()) {
+  // if (req.isAuthenticated()) {
+  if (currentUser && currentUser.id) {
+    // User is logged in (via either method)
     res.render('check', { 
       title: 'Verifier un numéro - TajerTrust',
       user: currentUser,
