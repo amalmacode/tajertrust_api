@@ -518,7 +518,7 @@ if (existing.rows.length > 0) {
     await pool.query(
       `INSERT INTO blacklisted_phones (phone, reason, seller_id, date)
        VALUES ($1, $2, $3, NOW())`,
-      [cleanedPhone, reason, req.user.id]
+      [cleanedPhone, reason, seller_id]
     );
     req.flash('success', `Le numéro ${cleanedPhone} a été ajouté à votre blacklist.`);
     res.redirect('/blacklist_add');
