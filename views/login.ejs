@@ -77,6 +77,24 @@
 </div>
 
 <script>
+
+    // Fix Facebook OAuth redirect issue with #_=_
+window.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#_=_') {
+        // Clean the hash from URL
+        window.history.replaceState(null, null, window.location.pathname);
+        
+        // Check if there's a success flash message
+        const successMessage = document.querySelector('.alert-success');
+        if (successMessage && successMessage.textContent.includes('Connexion réussie via Instagram')) {
+            // If there's a success message, redirect to dashboard after a short delay
+            setTimeout(function() {
+                window.location.href = '/check';
+            }, 1500); // 1.5 seconds to show the success message
+        }
+    }
+});
+
 function connectInstagramBusiness() {
   // Generate unique state for login
   const state = 'login_instagram_' + Math.random().toString(36).substring(2, 15);
