@@ -163,22 +163,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// Make session data available to all templates
+app.use((req, res, next) => {
+    // Pass user data to templates
+    res.locals.user = req.user || null;
+    res.locals.currentUser = req.user || req.session.user || null;
+    res.locals.sessionUser = req.session.user || null;
+    
+    // For backward compatibility
+    if (!req.user && req.session.user) {
+        res.locals.user = req.session.user;
+    }
+    
+    next();
+});
+
 app.use('/', staticRoutes);
 app.use('/', authRoutes);
 
-// Routes
-// Landing page to trigger login
-// app.get('/login-instagram', (req, res) => {
-//   res.render('loginInst',{
-//       title: 'insta login - TajerTrust',
-//       layout: false, // This disables the default layout for this render
-//       messages : {
-//         error: req.flash('error'),
-//         success: req.flash('success')
-//       },
-//       currentPath: req.path
-//     });
-//   });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
