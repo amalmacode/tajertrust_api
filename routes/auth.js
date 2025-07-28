@@ -564,12 +564,14 @@ router.get('/ma_blacklist', ensureAuthenticated, async (req, res) => {
 router.post('/blacklist/update', ensureAuthenticated, async (req, res) => {
 
   const { id, phone, reason } = req.body;
+  // Get user from either Passport or session
+    const currentUser = req.user || req.session.user;
 
   try {
     // Fetch the old entry
     const { rows } = await pool.query(
       'SELECT phone, reason FROM blacklisted_phones WHERE id = $1 AND seller_id = $2',
-      [id, req.user.id]
+      [id, currentUser.id]
     );
 
     if (rows.length === 0) {
@@ -582,7 +584,7 @@ router.post('/blacklist/update', ensureAuthenticated, async (req, res) => {
     // Update the entry
     await pool.query(
       'UPDATE blacklisted_phones SET phone = $1, reason = $2 WHERE id = $3 AND seller_id = $4',
-      [phone, reason, id, req.user.id]
+      [phone, reason, id, currentUser.id]
     );
 
     req.flash(
@@ -600,7 +602,9 @@ router.post('/blacklist/update', ensureAuthenticated, async (req, res) => {
 // DELETE a blacklisted phone
 router.post('/blacklist/delete/:id', ensureAuthenticated, async (req, res) => {
   const id = req.params.id;
-  const sellerId = req.user.id;
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
+  const sellerId = currentUser.id;
 
   try {
     // Fetch the phone number first
@@ -1164,9 +1168,12 @@ router.post('/reset-password/:token', async (req, res) => {
 
 // settings : account get 
 router.get('/settings/account', ensureAuthenticated, (req, res) => {
+// Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
+
   res.render('settings/account', {
     title : "Mon Compte",
-    user: req.user,
+    user: currentUser,
     messages: {
       error: req.flash('error'),
       success: req.flash('success')
@@ -1175,9 +1182,11 @@ router.get('/settings/account', ensureAuthenticated, (req, res) => {
 });
 // Update_password get 
 router.get('/update-password', ensureAuthenticated, (req, res) => {
+ // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
   res.render('update-password', { 
     title: "Modifier Mot de paase",
-    user: req.user,
+    user: currentUser,
     messages: req.flash(),
     currentPath: req.path});
 });
@@ -1185,12 +1194,14 @@ router.get('/update-password', ensureAuthenticated, (req, res) => {
 router.post('/update-password', ensureAuthenticated, async (req, res) => {
   const { current_password, new_password, confirm_password } = req.body;
   const messages = {};
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
 
   if (!current_password || !new_password || !confirm_password) {
     messages.error = 'Tous les champs sont obligatoires.';
     return res.render('update-password', {
       title: "Modifier Mot Passe",
-      user: req.user,
+      user: currentUser,
       messages,
       currentPath: req.path
     });
@@ -1199,7 +1210,7 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
     messages.error = 'Les mots de passe ne correspondent pas.';
     return res.render('update-password', {
       title: "Modifier Mot Passe",
-      user: req.user,
+      user: currentUser,
       messages,
       currentPath: req.path
     });
@@ -1209,7 +1220,7 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
     messages.error = 'Le mot de passe doit contenir au moins 8 caractères.';
     return res.render('update-password', {
       title: "Modifier Mot Passe",
-      user: req.user,
+      user: currentUser,
       messages,
       currentPath: req.path
     });
@@ -1221,7 +1232,7 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
       messages.error = 'Ancien mot de passe incorrect.';
       return res.render('update-password', {
         title: "Modifier Mot Passe",
-        user: req.user,
+        user: currentUser,
         messages,
         currentPath: req.path
       });
@@ -1232,7 +1243,7 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
     messages.success = 'Mot de passe mis à jour avec succès.';
     return res.render('update-password', {
       title: "Modifier Mot Passe",
-      user: req.user,
+      user: currentUser,
       messages,
       currentPath: req.path
     });
@@ -1241,7 +1252,7 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
     messages.error = 'Erreur interne. Veuillez réessayer.';
     return res.render('update-password', {
       title: "Modifier Mot Passe",
-      user: req.user,
+      user: currentUser,
       messages,
       currentPath: req.path
     });
@@ -1315,39 +1326,6 @@ router.post('/upload-blacklist', ensureAuthenticated, uploadCsv.single('blacklis
     return phone.startsWith('0') ? phone : '0' + phone;
   };
 
-  // const processRow = async (row) => {
-  //   const rawPhone = row.telephone?.trim();
-  //   const reason = row.raison?.trim() || 'Raison non précisée';
-  //   // 1. Normalize
-  // const phone = normalizePhone(rawPhone);
-  //   // 2. Validate format
-  //   if (!isValidMoroccanPhone(rawPhone)) {
-  //     skipped.push({ phone: rawPhone, reason: 'Format invalide' });
-  //     return;
-  //   }
-    
-  //   // 3. Check CSV duplicates (in-memory)
-  //   if (seenPhonesInCSV.has(phone)) {
-  //     skipped.push({ phone, reason: 'Doublon dans le fichier CSV' });
-  //     return;
-  //   }
-  //   seenPhonesInCSV.add(phone);
-  //   // 4. Check DB duplicates for this seller
-  //   const existingSeller = await pool.query(
-  //     'SELECT 1 FROM blacklisted_phones WHERE seller_id = $1 AND phone = $2',
-  //     [req.user.id, phone]
-  //   );
-  //   if (existingSeller.rowCount > 0) {
-  //     skipped.push({ phone, reason: 'Déjà blacklisté par vous' });
-  //     return;
-  //   }
-  //   // 5. Insert
-  //   await pool.query(
-  //     'INSERT INTO blacklisted_phones (seller_id, phone, reason, date) VALUES ($1, $2, $3, NOW())',
-  //     [req.user.id, phone, reason]
-  //   );
-  //   imported.push(phone);
-  // };
   const processRow = async (row) => {
     try {
       // Ensure values are strings before trimming
@@ -1375,11 +1353,12 @@ router.post('/upload-blacklist', ensureAuthenticated, uploadCsv.single('blacklis
         return;
       }
       seenPhonesInCSV.add(phone);
-  
+      // Get user from either Passport or session
+      const currentUser = req.user || req.session.user;
       // Check for existing in DB
       const existingSeller = await pool.query(
         'SELECT 1 FROM blacklisted_phones WHERE seller_id = $1 AND phone = $2',
-        [req.user.id, phone]
+        [currentUser.id, phone]
       );
       if (existingSeller.rowCount > 0) {
         skipped.push({ phone, reason: 'Déjà blacklisté par vous' });
@@ -1389,7 +1368,7 @@ router.post('/upload-blacklist', ensureAuthenticated, uploadCsv.single('blacklis
       // Insert
       await pool.query(
         'INSERT INTO blacklisted_phones (seller_id, phone, reason, date) VALUES ($1, $2, $3, NOW())',
-        [req.user.id, phone, reason]
+        [currentUser.id, phone, reason]
       );
       imported.push(phone);
   
@@ -1472,10 +1451,12 @@ console.log("extension:"+ext);
 
 // HOME : GET 
 router.get('/',(req, res) => {
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
   if (req.isAuthenticated()) {
     res.render('check', { 
       title: 'Verifier un numéro - TajerTrust',
-      user: req.user,
+      user: currentUser,
       messages : {
         error: req.flash('error'),
         success: req.flash('success')
