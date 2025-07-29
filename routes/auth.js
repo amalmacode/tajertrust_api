@@ -1188,18 +1188,54 @@ router.post('/reset-password/:token', async (req, res) => {
 });
 
 // settings : account get 
-router.get('/settings/account', ensureAuthenticated, (req, res) => {
-// Get user from either Passport or session
-  const currentUser = req.user || req.session.user;
+router.get('/settings/account', ensureAuthenticated, async(req, res) => {
 
-  res.render('settings/account', {
-    title : "Mon Compte",
-    user: currentUser,
-    messages: {
-      error: req.flash('error'),
-      success: req.flash('success')
-    },      currentPath: req.path
-  });
+try {
+    // Get user from either Passport or session
+    const currentUser = req.user || req.session.user;
+    
+    if (!currentUser || !currentUser.id) {
+      req.flash('error', 'Session utilisateur invalide.');
+      return res.redirect('/login');
+    }
+    
+    // Fetch fresh user data from database to ensure profile_image is current
+    const result = await pool.query(`
+      SELECT id, email, business_name, instagram_username, profile_image, registration_method 
+      FROM sellers 
+      WHERE id = $1
+    `, [currentUser.id]);
+    
+    if (result.rows.length === 0) {
+      req.flash('error', 'Utilisateur non trouvé.');
+      return res.redirect('/login');
+    }
+    
+    const freshUserData = result.rows[0];
+    
+    // Update session with fresh data (especially profile_image)
+    if (req.session.user) {
+      req.session.user.profile_image = freshUserData.profile_image;
+    }
+    
+    res.render('settings/account', {
+      title: "Mon Compte",
+      user: freshUserData, // Use fresh data from DB
+      currentUser: freshUserData, // Also provide as currentUser
+      messages: {
+        error: req.flash('error'),
+        success: req.flash('success')
+      },      
+      currentPath: req.path
+    });
+    
+  } catch (error) {
+    console.error('Account page error:', error);
+    req.flash('error', 'Erreur lors du chargement du compte.');
+    res.redirect('/check');
+  }
+
+
 });
 // Update_password get 
 router.get('/update-password', ensureAuthenticated, (req, res) => {
@@ -1929,8 +1965,10 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
                     id: user.id,
                     email: user.email,
                     business_name: user.business_name,
-                    instagram_username: user.instagram_username
-                };
+                    instagram_username: user.instagram_username,
+                    profile_image: user.profile_image, // Include profile image
+                    registration_method: user.registration_method
+                  };
                 
                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
                 res.redirect('/check');

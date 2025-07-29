@@ -13,15 +13,3 @@
     </form>
   </div>
 </div>
-
-<!-- Temporary debug info -->
-<div style="background: #f0f0f0; padding: 10px; margin: 10px 0;">
-    <strong>Debug Info:</strong><br>
-    req.user: <%= JSON.stringify(user || null) %><br>
-    currentUser: <%= JSON.stringify(currentUser || null) %><br>
-    <% if (typeof locals.sessionUser !== 'undefined') { %>
-        session.user: <%= JSON.stringify(locals.sessionUser) %><br>
-    <% } else { %>
-        session.user: not available in template<br>
-    <% } %>
-</div>
