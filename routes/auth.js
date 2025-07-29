@@ -1307,7 +1307,7 @@ router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
 }, async (req, res) => {
     try {
       // Get user from either Passport or session
-     const currentUser = req.user || req.session.user;
+    const currentUser = req.user || req.session.user;
     const newImageName = req.file.filename;
     // 1. Get current profile image name from DB
     const result = await pool.query('SELECT profile_image FROM sellers WHERE id = $1', [currentUser.id]);
@@ -1325,7 +1325,7 @@ router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
       [newImageName, currentUser.id]);
 
     // Update session
-    req.user.profile_image = newImageName;
+    currentUser.profile_image = newImageName;
     req.flash('success', 'Photo de profil mise à jour avec succès.');
     return res.redirect('/settings/account');
 
