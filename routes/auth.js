@@ -1281,10 +1281,10 @@ router.post('/update-password', ensureAuthenticated, async (req, res) => {
 });
 // update profile photo : PHOTO 
 router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
+  
   upload.single('profile')(req, res, function (err) {
     const errorMessage = err?.message || '';
-    // Get user from either Passport or session
-     const currentUser = req.user || req.session.user;
+   
     if (err instanceof multer.MulterError || errorMessage === 'Only images are allowed') 
       {
       req.flash('error', 'Seules les images sont autorisées.');
@@ -1306,6 +1306,8 @@ router.post('/update-profile-photo', ensureAuthenticated, (req, res, next) => {
   });
 }, async (req, res) => {
     try {
+      // Get user from either Passport or session
+     const currentUser = req.user || req.session.user;
     const newImageName = req.file.filename;
     // 1. Get current profile image name from DB
     const result = await pool.query('SELECT profile_image FROM sellers WHERE id = $1', [currentUser.id]);
