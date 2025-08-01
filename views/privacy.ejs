@@ -299,7 +299,7 @@
             </ul>
         </div>
 
-        <div class="section">
+      <div class="section">
             <h2>4. Intégration Facebook et Instagram</h2>
             
             <h3>4.1 Détails de l'Intégration d'Application Facebook</h3>
@@ -307,25 +307,82 @@
             <p><strong>Objectif de l'Intégration :</strong> Vérification de propriété des comptes Instagram Business</p>
             <p><strong>Autorisations Facebook Utilisées :</strong></p>
             <ul>
-                <li><code>instagram_business_basic</code> - Lire les informations de base du compte Instagram business</li>
-                <li><code>business_management</code> - Accéder aux pages Facebook Business Manager</li>
-                <li><code>pages_show_list</code> - Lister les pages Facebook connectées à Instagram</li>
+                <li><code>pages_show_list</code> - Lister les pages Facebook que vous gérez</li>
+                <li><code>pages_read_engagement</code> - Accéder aux comptes Instagram connectés aux pages Facebook</li>
+                <li><code>instagram_business_basic</code> - Lire les informations de base du compte Instagram Business (nom d'utilisateur, type de compte, nombre d'abonnés)</li>
             </ul>
 
-            <h3>4.2 Traitement des Données avec les APIs Facebook</h3>
+            <h3>4.2 Processus de Vérification Instagram Business</h3>
+            <p><strong>Étape 1 - Connexion Facebook :</strong></p>
             <ul>
-                <li><strong>Vérification de Propriété Uniquement :</strong> Nous vérifions que les vendeurs possèdent les comptes Instagram qu'ils revendiquent</li>
-                <li><strong>Pas d'Accès au Contenu :</strong> Nous n'accédons pas aux posts Instagram, stories, ou contenu privé</li>
-                <li><strong>Type de Compte Inclusif :</strong> Nous vérifions la propriété pour tous les types de comptes Instagram de manière égale</li>
-                <li><strong>Traitement Sécurisé :</strong> Toutes les données de l'API Facebook sont traitées de manière sécurisée et temporaire</li>
+                <li>Vous cliquez sur "S'inscrire avec Instagram Business" sur notre plateforme</li>
+                <li>Vous êtes redirigé vers Facebook pour autoriser notre application</li>
+                <li>Vous sélectionnez les pages Facebook que vous gérez</li>
+                <li>Vous sélectionnez le compte Instagram Business connecté à ces pages</li>
             </ul>
 
-            <h3>4.3 Contrôle Utilisateur et Consentement</h3>
+            <p><strong>Étape 2 - Vérification de Compte :</strong></p>
             <ul>
-                <li><strong>Vérification Optionnelle :</strong> La vérification Instagram est optionnelle pour les vendeurs</li>
-                <li><strong>Consentement Explicite :</strong> Les utilisateurs autorisent explicitement la connexion Facebook pour la vérification</li>
-                <li><strong>Accès Révocable :</strong> Les utilisateurs peuvent révoquer les autorisations Facebook à tout moment via les paramètres Facebook</li>
-                <li><strong>Processus Transparent :</strong> Explication claire des données accédées et pourquoi</li>
+                <li>Nous vérifions que le compte Instagram est de type "Business" ou "Creator"</li>
+                <li>Nous collectons le nom d'utilisateur Instagram pour identification</li>
+                <li>Nous vérifions le nombre d'abonnés (minimum 100 pour l'éligibilité)</li>
+                <li>Nous vérifions le nombre de publications (minimum 5 pour l'éligibilité)</li>
+            </ul>
+
+            <h3>4.3 Données Collectées via l'Intégration Instagram</h3>
+            <p>Lorsque vous vous inscrivez avec Instagram Business, nous collectons :</p>
+            <ul>
+                <li><strong>ID du Compte Instagram :</strong> Identifiant unique pour prévenir les doublons</li>
+                <li><strong>Nom d'Utilisateur Instagram :</strong> @votre_entreprise (affiché sur votre profil)</li>
+                <li><strong>Type de Compte :</strong> "Business" ou "Creator" (requis pour l'inscription)</li>
+                <li><strong>Nom de l'Entreprise :</strong> Nom affiché sur votre page Instagram Business</li>
+                <li><strong>Nombre d'Abonnés :</strong> Pour vérifier l'activité minimale (100+ requis)</li>
+                <li><strong>Nombre de Publications :</strong> Pour vérifier l'activité du compte (5+ requis)</li>
+                <li><strong>Photo de Profil :</strong> URL de l'image de profil (optionnel)</li>
+                <li><strong>Page Facebook Connectée :</strong> Nom de la page Facebook liée au compte Instagram</li>
+            </ul>
+
+            <h3>4.4 Ce Que Nous N'Accédons PAS</h3>
+            <ul>
+                <li><strong>Contenu des Publications :</strong> Nous ne lisons pas vos posts, photos, ou vidéos</li>
+                <li><strong>Messages Privés :</strong> Aucun accès aux DM Instagram ou messages Facebook</li>
+                <li><strong>Commentaires :</strong> Nous ne lisons pas les commentaires sur vos publications</li>
+                <li><strong>Stories Instagram :</strong> Aucun accès aux stories ou contenu temporaire</li>
+                <li><strong>Données d'Engagement :</strong> Nous ne collectons pas les likes, partages, ou métriques détaillées</li>
+                <li><strong>Liste d'Abonnés :</strong> Nous ne pouvons pas voir qui vous suit ou qui vous suivez</li>
+                <li><strong>Informations Personnelles :</strong> Aucun accès à vos informations personnelles Facebook</li>
+            </ul>
+
+            <h3>4.5 Contrôle Utilisateur et Consentement</h3>
+            <ul>
+                <li><strong>Inscription Optionnelle :</strong> L'inscription Instagram est une alternative à l'inscription email traditionnelle</li>
+                <li><strong>Consentement Explicite :</strong> Vous autorisez explicitement chaque permission dans la boîte de dialogue Facebook</li>
+                <li><strong>Transparence Complète :</strong> Toutes les permissions sont clairement expliquées avant autorisation</li>
+                <li><strong>Révocation Facile :</strong> Vous pouvez révoquer l'accès via vos paramètres Facebook à tout moment</li>
+                <li><strong>Validation Admin :</strong> Votre compte Instagram est validé par notre équipe avant activation complète</li>
+            </ul>
+
+            <h3>4.6 Utilisation des Données Instagram</h3>
+            <p><strong>Verification Initiale :</strong></p>
+            <ul>
+                <li>Confirmer que vous possédez le compte Instagram Business revendiqué</li>
+                <li>Vérifier que votre compte respecte nos critères d'éligibilité (type Business/Creator, activité minimale)</li>
+                <li>Créer votre profil vendeur avec les informations business Instagram</li>
+            </ul>
+
+            <p><strong>Utilisation Continue :</strong></p>
+            <ul>
+                <li>Affichage de votre nom d'utilisateur Instagram sur votre profil vendeur (avec votre autorisation)</li>
+                <li>Identification unique de votre compte pour prévenir les duplications</li>
+                <li>Maintien de l'intégrité de notre communauté de vendeurs vérifiés</li>
+            </ul>
+
+            <h3>4.7 Conformité avec les Politiques Meta</h3>
+            <ul>
+                <li><strong>Conditions de la Plateforme Facebook :</strong> Conformité totale avec toutes les conditions Meta</li>
+                <li><strong>Politiques de l'API Instagram :</strong> Respect strict des conditions d'utilisation de l'API Instagram Business</li>
+                <li><strong>Protection des Données :</strong> Application des standards de protection des données Meta</li>
+                <li><strong>Utilisation Légitime :</strong> Utilisation uniquement pour la vérification d'identité business et la prévention de fraude</li>
             </ul>
         </div>
 
