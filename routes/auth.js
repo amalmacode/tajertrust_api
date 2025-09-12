@@ -246,7 +246,7 @@ router.get('/auth/instagram/register-callback', async (req, res) => {
                     instagramAccount.username,
                     instagramAccount.account_type,
                     instagramAccount.page_name,
-                    instagramAccount.followers_count || 0,
+                    0,
                     true, // Instagram is already verified
                     'instagram',
                     false, // Email not verified yet
@@ -268,7 +268,7 @@ router.get('/auth/instagram/register-callback', async (req, res) => {
                 
                 req.flash('success', `🎉 Inscription réussie avec Instagram (@${instagramAccount.username})! Veuillez maintenant compléter votre profil.`);
                 res.redirect('/complete-instagram-profile');
-                
+
             } catch (dbError) {
                 console.error('Database error during Instagram registration:', dbError);
                 if (dbError.code === '23505') {
@@ -2085,121 +2085,188 @@ router.get('/demo-oauth-page', (req, res) => {
 
 
 // Helper function to get Instagram business account (same as before)
+
 // async function getInstagramBusinessAccount(access_token) {
 //     try {
-//         console.log('Getting Instagram Business account for demo...');
+//         console.log('=== TESTING DIRECT PAGE ACCESS ===');
         
-//         // Get Facebook user info (this works with current permissions)
-//         const fbUserResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=id,name,email&access_token=${access_token}`);
-//         console.log('Facebook user info:', fbUserResponse.data);
+//         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
+//         console.log('User info:', meResponse.data);
         
-//         // For Meta app review - create a realistic demo response
-//         // This shows how your app WOULD work with the permissions
-//         const mockInstagramAccounts = [
-//             {
-//                 id: `ig_${fbUserResponse.data.id}_1`,
-//                 username: 'business_account_1',
-//                 account_type: 'BUSINESS',
-//                 page_name: 'Demo Business Page 1',
-//                 followers_count: 5420
-//             },
-//             {
-//                 id: `ig_${fbUserResponse.data.id}_2`, 
-//                 username: 'business_account_2',
-//                 account_type: 'BUSINESS',
-//                 page_name: 'Demo Business Page 2',
-//                 followers_count: 12500
+//         // Test direct access to your known page IDs
+//         const knownPageIds = ['102417398202241', '103514939343929', '230625368919978'];
+        
+//         for (const pageId of knownPageIds) {
+//             try {
+//                 console.log(`Testing direct access to page ${pageId}...`);
+//                 const pageResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=id,name&access_token=${access_token}`);
+//                 console.log(`Page ${pageId} response:`, pageResponse.data);
+                
+//                 // Check for Instagram Business account
+//                 const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${access_token}`);
+//                 console.log(`Instagram check for ${pageId}:`, igResponse.data);
+                
+//                 if (igResponse.data.instagram_business_account) {
+//                     const igAccountId = igResponse.data.instagram_business_account.id;
+//                     console.log(`Found Instagram Business account: ${igAccountId}`);
+                    
+//                     // Get Instagram account details with correct fields
+//                     try {
+//                         // Use only basic fields that are available
+//                         const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${access_token}`);
+//                         console.log('Instagram account details:', igDetailsResponse.data);
+                        
+//                         const igAccount = igDetailsResponse.data;
+                        
+//                         // Since we found it through instagram_business_account, we know it's a business account
+//                         if (igAccount.id && igAccount.username) {
+//                             console.log('✅ Valid Instagram Business account found!');
+//                             return {
+//                                 id: igAccount.id,
+//                                 username: igAccount.username,
+//                                 account_type: 'BUSINESS', // We know it's business since it came from instagram_business_account
+//                                 page_name: pageResponse.data.name,
+//                                 page_id: pageId,
+//                                 access_token: access_token
+//                             };
+//                         }
+//                     } catch (igDetailsError) {
+//                         console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data);
+                        
+//                         // If basic fields fail, still return what we know
+//                         console.log('Returning basic info since Instagram Business account exists');
+//                         return {
+//                             id: igAccountId,
+//                             username: 'instagram_business_user', // fallback
+//                             account_type: 'BUSINESS',
+//                             page_name: pageResponse.data.name,
+//                             page_id: pageId,
+//                             access_token: access_token
+//                         };
+//                     }
+//                 }
+                
+//             } catch (pageError) {
+//                 console.log(`Cannot access page ${pageId}:`, pageError.response?.data?.error?.message);
 //             }
-//         ];
+//         }
         
-//         // For demo purposes, return the first mock account
-//         // In production, this would be real Instagram Business API data
-//         const selectedAccount = mockInstagramAccounts[0];
-        
-//         console.log('Demo Instagram Business account selected:', selectedAccount);
-        
-//         return {
-//             id: selectedAccount.id,
-//             username: selectedAccount.username,
-//             account_type: selectedAccount.account_type,
-//             page_name: selectedAccount.page_name,
-//             followers_count: selectedAccount.followers_count,
-//             access_token: access_token,
-//             // Add a flag to indicate this is demo data
-//             is_demo: true,
-//             demo_note: 'This is demo data. Real Instagram Business API integration pending permission approval.'
-//         };
+//         console.log('No valid Instagram Business accounts found');
+//         return null;
         
 //     } catch (error) {
-//         console.error('Error in demo Instagram function:', error.response?.data || error.message);
+//         console.error('Direct access test failed:', error.response?.data || error.message);
 //         return null;
 //     }
 // }
+
 async function getInstagramBusinessAccount(access_token) {
     try {
-        console.log('Getting real Instagram Business account...');
+        console.log('=== GETTING INSTAGRAM BUSINESS ACCOUNT (UNIVERSAL) ===');
         
-        // First, get user's Facebook pages (required for Instagram Business API)
-        const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
-        console.log('Facebook pages found:', pagesResponse.data.data?.length || 0);
+        // Get basic user info
+        const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
+        console.log('User info:', meResponse.data);
         
-        if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
-            // Loop through each page to find Instagram Business accounts
-            for (const page of pagesResponse.data.data) {
-                try {
-                    console.log(`Checking page: ${page.name} (${page.id})`);
+        // Try to get user's Facebook pages using the standard API
+        console.log('Fetching user pages...');
+        let pagesResponse;
+        
+        try {
+            // First try the standard pages endpoint
+            pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
+            console.log('Pages API response:', JSON.stringify(pagesResponse.data, null, 2));
+        } catch (pagesError) {
+            console.log('Standard pages API failed:', pagesError.response?.data?.error?.message);
+            
+            // If pages API fails, this might be a permission issue
+            // For now, we'll try a different approach or return demo data
+            console.log('Pages API not accessible. This could mean:');
+            console.log('- App needs pages_show_list permission approval');
+            console.log('- User granted permissions but API access is limited');
+            
+            // Return null so the calling code can handle appropriately
+            return null;
+        }
+        
+        // Check if we found any pages
+        if (!pagesResponse.data.data || pagesResponse.data.data.length === 0) {
+            console.log('No Facebook pages found for this user');
+            return null;
+        }
+        
+        console.log(`Found ${pagesResponse.data.data.length} Facebook pages`);
+        
+        // Loop through all user's pages to find Instagram Business accounts
+        for (const page of pagesResponse.data.data) {
+            try {
+                console.log(`\n--- Checking page: ${page.name} (${page.id}) ---`);
+                
+                // Check if this page has an Instagram Business account
+                const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+                console.log(`Instagram check response:`, igResponse.data);
+                
+                if (igResponse.data.instagram_business_account) {
+                    const igAccountId = igResponse.data.instagram_business_account.id;
+                    console.log(`✅ Found Instagram Business account: ${igAccountId}`);
                     
-                    // Check if this page has an Instagram Business account
-                    const instagramResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
-                    console.log(`Instagram check response for ${page.name}:`, instagramResponse.data);
-                    
-                    if (instagramResponse.data.instagram_business_account) {
-                        const igAccountId = instagramResponse.data.instagram_business_account.id;
-                        console.log(`Found Instagram Business account: ${igAccountId}`);
-                        
-                        // Get detailed Instagram account information
-                        const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username,name,account_type,followers_count,media_count,profile_picture_url&access_token=${page.access_token}`);
+                    // Get Instagram account details
+                    try {
+                        const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${page.access_token}`);
+                        console.log('Instagram account details:', igDetailsResponse.data);
                         
                         const igAccount = igDetailsResponse.data;
-                        console.log('Instagram Business account details:', igAccount);
                         
-                        // Verify it's actually a Business or Creator account
-                        if (igAccount.account_type === 'BUSINESS' || igAccount.account_type === 'CREATOR') {
+                        if (igAccount.id && igAccount.username) {
+                            console.log(`✅ Successfully retrieved Instagram account: @${igAccount.username}`);
                             return {
                                 id: igAccount.id,
                                 username: igAccount.username,
-                                name: igAccount.name,
-                                account_type: igAccount.account_type,
+                                account_type: 'BUSINESS',
                                 page_name: page.name,
-                                followers_count: igAccount.followers_count || 0,
-                                media_count: igAccount.media_count || 0,
-                                profile_picture_url: igAccount.profile_picture_url,
-                                access_token: access_token,
-                                page_access_token: page.access_token,
                                 page_id: page.id,
-                                is_real_business: true
+                                access_token: access_token,
+                                page_access_token: page.access_token
                             };
-                        } else {
-                            console.log(`Instagram account @${igAccount.username} is not a Business/Creator account (type: ${igAccount.account_type})`);
                         }
-                    } else {
-                        console.log(`No Instagram Business account found for page: ${page.name}`);
+                    } catch (igDetailsError) {
+                        console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data?.error?.message);
+                        
+                        // Still return basic info since we know the Instagram account exists
+                        console.log('Returning basic info since Instagram Business account exists');
+                        return {
+                            id: igAccountId,
+                            username: `instagram_user_${igAccountId.slice(-8)}`, // Use last 8 chars of ID as fallback
+                            account_type: 'BUSINESS',
+                            page_name: page.name,
+                            page_id: page.id,
+                            access_token: access_token,
+                            page_access_token: page.access_token
+                        };
                     }
-                } catch (pageError) {
-                    console.log(`Error checking page ${page.name}:`, pageError.response?.data || pageError.message);
+                } else {
+                    console.log(`❌ No Instagram Business account linked to page: ${page.name}`);
                 }
+                
+            } catch (pageError) {
+                console.log(`❌ Error checking page ${page.name}:`, pageError.response?.data?.error?.message);
+                continue; // Try next page
             }
         }
         
-        // If no Instagram Business account found, return null
-        console.log('No valid Instagram Business/Creator account found');
+        console.log('❌ No Instagram Business accounts found on any of the user\'s pages');
         return null;
         
     } catch (error) {
-        console.error('Error getting Instagram Business account:', error.response?.data || error.message);
+        console.error('❌ Error in getInstagramBusinessAccount:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+        });
         return null;
     }
 }
+
 // Instagram Login callback (different from registration)
 router.get('/auth/instagram/login-callback', async (req, res) => {
     const { code, state } = req.query;
@@ -2282,5 +2349,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
         res.redirect('/login');
     }
 });
+
+
 
 module.exports = router;
