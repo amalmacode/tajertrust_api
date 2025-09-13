@@ -656,9 +656,11 @@ router.post('/login', (req, res, next) => {
 //  GET / POST CHECK
 router.get('/check', ensureAuthenticated, (req, res) => {
   // console.log('User in check page:', req.user); // Should show user info
+  // Get user from either Passport or session
+  const currentUser = req.user || req.session.user;
   res.render('check', {
     title: 'Vérifier un numéro - TajerTrust',
-    user: req.user,
+    user: currentUser,
     messages: {
       success: req.flash('success'),
       error: req.flash('error')
