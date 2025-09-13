@@ -349,34 +349,34 @@ router.post('/complete-instagram-profile', async (req, res) => {
         `, [email, website || '', pendingRegistration.userId]);
         
         // Send email verification
-        // const verifyLink = `${process.env.verifyLink}/verify?token=${pendingRegistration.verificationToken}`;
+        const verifyLink = `${process.env.verifyLink}/verify?token=${pendingRegistration.verificationToken}`;
         
-        // await transporter.sendMail({
-        //     to: email,
-        //     subject: "Confirmez votre email - TajerTrust",
-        //     html: `
-        //         <p>Bienvenue sur TajerTrust!</p>
-        //         <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
-        //         <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
-        //         <a href="${verifyLink}">Confirmer mon email</a>
-        //         <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
-        //     `
-        // });
+        await transporter.sendMail({
+            to: email,
+            subject: "Confirmez votre email - TajerTrust",
+            html: `
+                <p>Bienvenue sur TajerTrust!</p>
+                <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
+                <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
+                <a href="${verifyLink}">Confirmer mon email</a>
+                <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
+            `
+        });
         
-        // // Send notification to admin
-        // await transporter.sendMail({
-        //     to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
-        //     subject: "Nouveau compte Instagram à valider - TajerTrust",
-        //     html: `
-        //         <p>Un nouveau compte Instagram vient de s'inscrire :</p>
-        //         <ul>
-        //             <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
-        //             <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
-        //             <li><strong>Email:</strong> ${email}</li>
-        //         </ul>
-        //         <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
-        //     `
-        // });
+        // Send notification to admin
+        await transporter.sendMail({
+            to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
+            subject: "Nouveau compte Instagram à valider - TajerTrust",
+            html: `
+                <p>Un nouveau compte Instagram vient de s'inscrire :</p>
+                <ul>
+                    <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
+                    <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
+                    <li><strong>Email:</strong> ${email}</li>
+                </ul>
+                <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
+            `
+        });
         
         // Clear session data
         delete req.session.pendingRegistration;
@@ -2086,188 +2086,271 @@ router.get('/demo-oauth-page', (req, res) => {
 
 // Helper function to get Instagram business account (same as before)
 
-// async function getInstagramBusinessAccount(access_token) {
-//     try {
-//         console.log('=== TESTING DIRECT PAGE ACCESS ===');
-        
-//         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
-//         console.log('User info:', meResponse.data);
-        
-//         // Test direct access to your known page IDs
-//         const knownPageIds = ['102417398202241', '103514939343929', '230625368919978'];
-        
-//         for (const pageId of knownPageIds) {
-//             try {
-//                 console.log(`Testing direct access to page ${pageId}...`);
-//                 const pageResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=id,name&access_token=${access_token}`);
-//                 console.log(`Page ${pageId} response:`, pageResponse.data);
-                
-//                 // Check for Instagram Business account
-//                 const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${access_token}`);
-//                 console.log(`Instagram check for ${pageId}:`, igResponse.data);
-                
-//                 if (igResponse.data.instagram_business_account) {
-//                     const igAccountId = igResponse.data.instagram_business_account.id;
-//                     console.log(`Found Instagram Business account: ${igAccountId}`);
-                    
-//                     // Get Instagram account details with correct fields
-//                     try {
-//                         // Use only basic fields that are available
-//                         const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${access_token}`);
-//                         console.log('Instagram account details:', igDetailsResponse.data);
-                        
-//                         const igAccount = igDetailsResponse.data;
-                        
-//                         // Since we found it through instagram_business_account, we know it's a business account
-//                         if (igAccount.id && igAccount.username) {
-//                             console.log('✅ Valid Instagram Business account found!');
-//                             return {
-//                                 id: igAccount.id,
-//                                 username: igAccount.username,
-//                                 account_type: 'BUSINESS', // We know it's business since it came from instagram_business_account
-//                                 page_name: pageResponse.data.name,
-//                                 page_id: pageId,
-//                                 access_token: access_token
-//                             };
-//                         }
-//                     } catch (igDetailsError) {
-//                         console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data);
-                        
-//                         // If basic fields fail, still return what we know
-//                         console.log('Returning basic info since Instagram Business account exists');
-//                         return {
-//                             id: igAccountId,
-//                             username: 'instagram_business_user', // fallback
-//                             account_type: 'BUSINESS',
-//                             page_name: pageResponse.data.name,
-//                             page_id: pageId,
-//                             access_token: access_token
-//                         };
-//                     }
-//                 }
-                
-//             } catch (pageError) {
-//                 console.log(`Cannot access page ${pageId}:`, pageError.response?.data?.error?.message);
-//             }
-//         }
-        
-//         console.log('No valid Instagram Business accounts found');
-//         return null;
-        
-//     } catch (error) {
-//         console.error('Direct access test failed:', error.response?.data || error.message);
-//         return null;
-//     }
-// }
-
 async function getInstagramBusinessAccount(access_token) {
     try {
-        console.log('=== GETTING INSTAGRAM BUSINESS ACCOUNT (UNIVERSAL) ===');
+        console.log('=== TESTING DIRECT PAGE ACCESS ===');
         
-        // Get basic user info
         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
         console.log('User info:', meResponse.data);
         
-        // Try to get user's Facebook pages using the standard API
-        console.log('Fetching user pages...');
-        let pagesResponse;
+        // Test direct access to your known page IDs
+        const knownPageIds = ['102417398202241', '103514939343929', '230625368919978'];
         
-        try {
-            // First try the standard pages endpoint
-            pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
-            console.log('Pages API response:', JSON.stringify(pagesResponse.data, null, 2));
-        } catch (pagesError) {
-            console.log('Standard pages API failed:', pagesError.response?.data?.error?.message);
-            
-            // If pages API fails, this might be a permission issue
-            // For now, we'll try a different approach or return demo data
-            console.log('Pages API not accessible. This could mean:');
-            console.log('- App needs pages_show_list permission approval');
-            console.log('- User granted permissions but API access is limited');
-            
-            // Return null so the calling code can handle appropriately
-            return null;
-        }
-        
-        // Check if we found any pages
-        if (!pagesResponse.data.data || pagesResponse.data.data.length === 0) {
-            console.log('No Facebook pages found for this user');
-            return null;
-        }
-        
-        console.log(`Found ${pagesResponse.data.data.length} Facebook pages`);
-        
-        // Loop through all user's pages to find Instagram Business accounts
-        for (const page of pagesResponse.data.data) {
+        for (const pageId of knownPageIds) {
             try {
-                console.log(`\n--- Checking page: ${page.name} (${page.id}) ---`);
+                console.log(`Testing direct access to page ${pageId}...`);
+                const pageResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=id,name&access_token=${access_token}`);
+                console.log(`Page ${pageId} response:`, pageResponse.data);
                 
-                // Check if this page has an Instagram Business account
-                const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
-                console.log(`Instagram check response:`, igResponse.data);
+                // Check for Instagram Business account
+                const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${access_token}`);
+                console.log(`Instagram check for ${pageId}:`, igResponse.data);
                 
                 if (igResponse.data.instagram_business_account) {
                     const igAccountId = igResponse.data.instagram_business_account.id;
-                    console.log(`✅ Found Instagram Business account: ${igAccountId}`);
+                    console.log(`Found Instagram Business account: ${igAccountId}`);
                     
-                    // Get Instagram account details
+                    // Get Instagram account details with correct fields
                     try {
-                        const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${page.access_token}`);
+                        // Use only basic fields that are available
+                        const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${access_token}`);
                         console.log('Instagram account details:', igDetailsResponse.data);
                         
                         const igAccount = igDetailsResponse.data;
                         
+                        // Since we found it through instagram_business_account, we know it's a business account
                         if (igAccount.id && igAccount.username) {
-                            console.log(`✅ Successfully retrieved Instagram account: @${igAccount.username}`);
+                            console.log('✅ Valid Instagram Business account found!');
                             return {
                                 id: igAccount.id,
                                 username: igAccount.username,
-                                account_type: 'BUSINESS',
-                                page_name: page.name,
-                                page_id: page.id,
-                                access_token: access_token,
-                                page_access_token: page.access_token
+                                account_type: 'BUSINESS', // We know it's business since it came from instagram_business_account
+                                page_name: pageResponse.data.name,
+                                page_id: pageId,
+                                access_token: access_token
                             };
                         }
                     } catch (igDetailsError) {
-                        console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data?.error?.message);
+                        console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data);
                         
-                        // Still return basic info since we know the Instagram account exists
+                        // If basic fields fail, still return what we know
                         console.log('Returning basic info since Instagram Business account exists');
                         return {
                             id: igAccountId,
-                            username: `instagram_user_${igAccountId.slice(-8)}`, // Use last 8 chars of ID as fallback
+                            username: 'instagram_business_user', // fallback
                             account_type: 'BUSINESS',
-                            page_name: page.name,
-                            page_id: page.id,
-                            access_token: access_token,
-                            page_access_token: page.access_token
+                            page_name: pageResponse.data.name,
+                            page_id: pageId,
+                            access_token: access_token
                         };
                     }
-                } else {
-                    console.log(`❌ No Instagram Business account linked to page: ${page.name}`);
                 }
                 
             } catch (pageError) {
-                console.log(`❌ Error checking page ${page.name}:`, pageError.response?.data?.error?.message);
-                continue; // Try next page
+                console.log(`Cannot access page ${pageId}:`, pageError.response?.data?.error?.message);
             }
         }
         
-        console.log('❌ No Instagram Business accounts found on any of the user\'s pages');
+        console.log('No valid Instagram Business accounts found');
         return null;
         
     } catch (error) {
-        console.error('❌ Error in getInstagramBusinessAccount:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
+        console.error('Direct access test failed:', error.response?.data || error.message);
         return null;
     }
 }
 
+// async function getInstagramBusinessAccount(access_token) {
+//     try {
+//         console.log('=== GETTING INSTAGRAM BUSINESS ACCOUNT (UNIVERSAL) ===');
+        
+//         // Get basic user info
+//         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
+//         console.log('User info:', meResponse.data);
+        
+//         // Try to get user's Facebook pages using the standard API
+//         console.log('Fetching user pages...');
+//         let pagesResponse;
+        
+//         try {
+//             // First try the standard pages endpoint
+//             pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
+//             console.log('Pages API response:', JSON.stringify(pagesResponse.data, null, 2));
+//         } catch (pagesError) {
+//             console.log('Standard pages API failed:', pagesError.response?.data?.error?.message);
+            
+//             // If pages API fails, this might be a permission issue
+//             // For now, we'll try a different approach or return demo data
+//             console.log('Pages API not accessible. This could mean:');
+//             console.log('- App needs pages_show_list permission approval');
+//             console.log('- User granted permissions but API access is limited');
+            
+//             // Return null so the calling code can handle appropriately
+//             return null;
+//         }
+        
+//         // Check if we found any pages
+//         if (!pagesResponse.data.data || pagesResponse.data.data.length === 0) {
+//             console.log('No Facebook pages found for this user');
+//             return null;
+//         }
+        
+//         console.log(`Found ${pagesResponse.data.data.length} Facebook pages`);
+        
+//         // Loop through all user's pages to find Instagram Business accounts
+//         for (const page of pagesResponse.data.data) {
+//             try {
+//                 console.log(`\n--- Checking page: ${page.name} (${page.id}) ---`);
+                
+//                 // Check if this page has an Instagram Business account
+//                 const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+//                 console.log(`Instagram check response:`, igResponse.data);
+                
+//                 if (igResponse.data.instagram_business_account) {
+//                     const igAccountId = igResponse.data.instagram_business_account.id;
+//                     console.log(`✅ Found Instagram Business account: ${igAccountId}`);
+                    
+//                     // Get Instagram account details
+//                     try {
+//                         const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${page.access_token}`);
+//                         console.log('Instagram account details:', igDetailsResponse.data);
+                        
+//                         const igAccount = igDetailsResponse.data;
+                        
+//                         if (igAccount.id && igAccount.username) {
+//                             console.log(`✅ Successfully retrieved Instagram account: @${igAccount.username}`);
+//                             return {
+//                                 id: igAccount.id,
+//                                 username: igAccount.username,
+//                                 account_type: 'BUSINESS',
+//                                 page_name: page.name,
+//                                 page_id: page.id,
+//                                 access_token: access_token,
+//                                 page_access_token: page.access_token
+//                             };
+//                         }
+//                     } catch (igDetailsError) {
+//                         console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data?.error?.message);
+                        
+//                         // Still return basic info since we know the Instagram account exists
+//                         console.log('Returning basic info since Instagram Business account exists');
+//                         return {
+//                             id: igAccountId,
+//                             username: `instagram_user_${igAccountId.slice(-8)}`, // Use last 8 chars of ID as fallback
+//                             account_type: 'BUSINESS',
+//                             page_name: page.name,
+//                             page_id: page.id,
+//                             access_token: access_token,
+//                             page_access_token: page.access_token
+//                         };
+//                     }
+//                 } else {
+//                     console.log(`❌ No Instagram Business account linked to page: ${page.name}`);
+//                 }
+                
+//             } catch (pageError) {
+//                 console.log(`❌ Error checking page ${page.name}:`, pageError.response?.data?.error?.message);
+//                 continue; // Try next page
+//             }
+//         }
+        
+//         console.log('❌ No Instagram Business accounts found on any of the user\'s pages');
+//         return null;
+        
+//     } catch (error) {
+//         console.error('❌ Error in getInstagramBusinessAccount:', {
+//             message: error.message,
+//             response: error.response?.data,
+//             status: error.response?.status
+//         });
+//         return null;
+//     }
+// }
+
 // Instagram Login callback (different from registration)
+// router.get('/auth/instagram/login-callback', async (req, res) => {
+//     const { code, state } = req.query;
+    
+//     console.log('Login callback received:', { code: !!code, state });
+    
+//     if (!state || !state.startsWith('login_instagram_')) {
+//         console.log('Invalid state:', state);
+//         req.flash('error', 'Session de connexion invalide.');
+//         return res.redirect('/login');
+//     }
+    
+//     try {
+//         console.log('Exchanging code for token...');
+        
+//         // Detect environment and use appropriate redirect URI
+//         const isProduction = process.env.NODE_ENV === 'production' || req.get('host').includes('tajertrust.com');
+//         const redirectUri = isProduction 
+//             ? 'https://tajertrust.com/auth/instagram/login-callback'
+//             : 'http://localhost:3000/auth/instagram/login-callback';
+            
+//         console.log('Using redirect URI:', redirectUri);
+        
+//         // Exchange code for access token
+//         const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        
+//         console.log('Token response received');
+//         const access_token = tokenResponse.data.access_token;
+        
+//         console.log('Getting Instagram business account...');
+//         // Get Instagram business account
+//         const instagramAccount = await getInstagramBusinessAccount(access_token);
+//         console.log('Instagram account:', instagramAccount);
+        
+//         if (instagramAccount) {
+//             console.log('Searching for user with Instagram ID:', instagramAccount.id);
+//             // Find existing user with this Instagram account
+//             const result = await pool.query(`
+//                 SELECT * FROM sellers 
+//                 WHERE instagram_account_id = $1 
+//                 AND is_social_verified = true
+//             `, [instagramAccount.id]);
+            
+//             console.log('Database query result:', result.rows.length, 'users found');
+            
+//             if (result.rows.length > 0) {
+//                 const user = result.rows[0];
+                
+//                 // Log user in
+//                 req.session.user = {
+//                     id: user.id,
+//                     email: user.email,
+//                     business_name: user.business_name,
+//                     instagram_username: user.instagram_username,
+//                     profile_image: user.profile_image, // Include profile image
+//                     registration_method: user.registration_method
+//                   };
+                
+//                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
+//                 res.redirect('/check');
+                
+//             } else {
+//                 req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
+//                 res.redirect('/register');
+//             }
+            
+//         } else {
+//             console.log('No Instagram account found');
+//             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur.');
+//             res.redirect('/login');
+//         }
+        
+//     } catch (error) {
+//         console.error('Instagram login error details:', {
+//             message: error.message,
+//             response: error.response?.data,
+//             status: error.response?.status
+//         });
+//         req.flash('error', 'Erreur lors de la connexion Instagram. Veuillez réessayer.');
+//         res.redirect('/login');
+//     }
+// });
+
+
 router.get('/auth/instagram/login-callback', async (req, res) => {
     const { code, state } = req.query;
     
@@ -2284,6 +2367,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
         
         // Detect environment and use appropriate redirect URI
         const isProduction = process.env.NODE_ENV === 'production' || req.get('host').includes('tajertrust.com');
+        console.log("isProduction :", isProduction);
         const redirectUri = isProduction 
             ? 'https://tajertrust.com/auth/instagram/login-callback'
             : 'http://localhost:3000/auth/instagram/login-callback';
@@ -2296,10 +2380,10 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
         console.log('Token response received');
         const access_token = tokenResponse.data.access_token;
         
-        console.log('Getting Instagram business account...');
-        // Get Instagram business account
+        console.log('Getting Instagram business account for login...');
+        // Use the SAME function that worked for registration
         const instagramAccount = await getInstagramBusinessAccount(access_token);
-        console.log('Instagram account:', instagramAccount);
+        console.log('Instagram account for login:', instagramAccount);
         
         if (instagramAccount) {
             console.log('Searching for user with Instagram ID:', instagramAccount.id);
@@ -2315,26 +2399,33 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
             if (result.rows.length > 0) {
                 const user = result.rows[0];
                 
+                // Check if user is validated by admin
+                if (!user.is_validated) {
+                    req.flash('error', 'Votre compte est en attente de validation par notre équipe.');
+                    return res.redirect('/login');
+                }
+                
                 // Log user in
                 req.session.user = {
                     id: user.id,
                     email: user.email,
                     business_name: user.business_name,
                     instagram_username: user.instagram_username,
-                    profile_image: user.profile_image, // Include profile image
+                    profile_image: user.profile_image,
                     registration_method: user.registration_method
-                  };
+                };
                 
                 req.flash('success', `Connexion réussie via Instagram (@${instagramAccount.username})!`);
                 res.redirect('/check');
                 
             } else {
+                console.log('No user found with Instagram ID:', instagramAccount.id);
                 req.flash('error', 'Aucun compte TajerTrust trouvé avec ce compte Instagram. Veuillez vous inscrire d\'abord.');
                 res.redirect('/register');
             }
             
         } else {
-            console.log('No Instagram account found');
+            console.log('No Instagram account found for login');
             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur.');
             res.redirect('/login');
         }
@@ -2349,7 +2440,4 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
         res.redirect('/login');
     }
 });
-
-
-
 module.exports = router;
