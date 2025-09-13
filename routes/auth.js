@@ -349,7 +349,7 @@ router.post('/complete-instagram-profile', async (req, res) => {
         `, [email, website || '', pendingRegistration.userId]);
         
         // Send email verification
-        const verifyLink = `${process.env.verifyLink}/verify?token=${pendingRegistration.verificationToken}`;
+        const verifyLink = `${process.env.VERIFYLINK}/verify?token=${pendingRegistration.verificationToken}`;
         
         await transporter.sendMail({
             to: email,
