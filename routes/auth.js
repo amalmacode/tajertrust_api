@@ -167,229 +167,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Instagram Business Registration callback
-router.get('/auth/instagram/register-callback', async (req, res) => {
-    const { code, state } = req.query;
-    
-    console.log('Instagram register callback received:', { code: !!code, state });
-    
-    if (!state || !state.startsWith('register_instagram_')) {
-        console.log('Invalid state for registration:', state);
-        req.flash('error', 'Session d\'inscription invalide.');
-        return res.redirect('/register');
-    }
-    
-    try {
-        console.log('Exchanging code for token (registration)...');
-        const isProduction = process.env.NODE_ENV === 'production' || req.get('host').includes('tajertrust.com');
-        const redirectUri = isProduction 
-            ? 'https://tajertrust.com/auth/instagram/register-callback'
-            : 'http://localhost:3000/auth/instagram/register-callback';
-            
-        console.log('Using redirect URI for registration:', redirectUri);
-        
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
-        
-        console.log('Token response received for registration');
-        const access_token = tokenResponse.data.access_token;
-        
-        console.log('Getting Instagram business account for registration...');
-        const instagramAccount = await getInstagramBusinessAccount(access_token);
-        console.log('Instagram account for registration:', instagramAccount);
-        
-        if (instagramAccount) {
-            // Check if this Instagram account is already registered
-            const existingUser = await pool.query(`
-                SELECT id, email, business_name
-                FROM sellers 
-                WHERE instagram_account_id = $1
-            `, [instagramAccount.id]);
-            
-            if (existingUser.rows.length > 0) {
-                const user = existingUser.rows[0];
-                
-                req.flash('error', `Ce compte Instagram est déjà associé à un compte TajerTrust (${user.email}). Veuillez vous connecter.`);
-                return res.redirect('/login');
-            }
-            
-            // Create new user account with Instagram data
-            try {
-                const verificationToken = crypto.randomBytes(32).toString('hex');
-                const verifyCode = 'verify-' + crypto.randomBytes(3).toString('hex');
-                
-                // Insert new seller with Instagram data
-                const result = await pool.query(`
-                    INSERT INTO sellers (
-                        business_name, 
-                        email, 
-                        social_link,
-                        instagram_account_id,
-                        instagram_username,
-                        instagram_account_type,
-                        instagram_page_name,
-                        instagram_followers_count,
-                        is_social_verified,
-                        social_verified_at,
-                        registration_method,
-                        is_verified,
-                        is_validated,
-                        verification_token,
-                        verify_code,
-                        created_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10, $11, $12, $13,$14, NOW())
-                    RETURNING id, email, business_name
-                `, [
-                    instagramAccount.page_name || instagramAccount.username, // Use page name as business name
-                    `${instagramAccount.username}@instagram-temp.com`, // Temporary email - user will update
-                    `https://instagram.com/${instagramAccount.username}`,
-                    instagramAccount.id,
-                    instagramAccount.username,
-                    instagramAccount.account_type,
-                    instagramAccount.page_name,
-                    0,
-                    true, // Instagram is already verified
-                    'instagram',
-                    false, // Email not verified yet
-                    false, // not validated by Admin
-                    verificationToken,
-                    verifyCode
-                ]);
-                
-                const newUser = result.rows[0];
-                console.log('New Instagram user created:', newUser);
-                
-               // Store temporary registration data in session (for completing profile)
-                req.session.pendingRegistration = {
-                    userId: newUser.id,
-                    instagram_username: instagramAccount.username,
-                    business_name: newUser.business_name,
-                    verificationToken: verificationToken
-                };
-                
-                req.flash('success', `🎉 Inscription réussie avec Instagram (@${instagramAccount.username})! Veuillez maintenant compléter votre profil.`);
-                res.redirect('/complete-instagram-profile');
 
-            } catch (dbError) {
-                console.error('Database error during Instagram registration:', dbError);
-                if (dbError.code === '23505') {
-                    req.flash('error', 'Ce compte Instagram est déjà utilisé.');
-                } else {
-                    req.flash('error', 'Erreur lors de la création du compte.');
-                }
-                res.redirect('/register');
-            }
-            
-        } else {
-            console.log('No Instagram account found for registration');
-            req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur.');
-            res.redirect('/register');
-        }
-        
-    } catch (error) {
-        console.error('Instagram registration error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
-        req.flash('error', 'Erreur lors de l\'inscription Instagram. Veuillez réessayer.');
-        res.redirect('/register');
-    }
-});
-
-// Complete Instagram profile route (GET)
-router.get('/complete-instagram-profile', (req, res) => {
-    const pendingRegistration = req.session.pendingRegistration;
-    
-    if (!pendingRegistration || !pendingRegistration.userId) {
-        req.flash('error', 'Session d\'inscription expirée. Veuillez recommencer.');
-        return res.redirect('/register');
-    }
-    
-    res.render('complete-instagram-profile', {
-        title: 'Compléter votre profil',
-        user: pendingRegistration, // Use pending registration data
-        messages: {
-            error: req.flash('error'),
-            success: req.flash('success')
-        },
-        currentPath: req.path
-    });
-});
-
-
-// Complete Instagram profile route (POST)
-router.post('/complete-instagram-profile', async (req, res) => {
-    const { email, website } = req.body;
-    const pendingRegistration = req.session.pendingRegistration;
-    
-    if (!pendingRegistration || !pendingRegistration.userId) {
-        req.flash('error', 'Session d\'inscription expirée. Veuillez recommencer.');
-        return res.redirect('/register');
-    }
-    
-    try {
-        // Validate email
-        if (!email || !email.includes('@')) {
-            req.flash('error', 'Veuillez fournir un email valide.');
-            return res.redirect('/complete-instagram-profile');
-        }
-        
-        // Check if email is already used
-        const existingEmail = await pool.query('SELECT id FROM sellers WHERE email = $1 AND id != $2', [email, pendingRegistration.userId]);
-        if (existingEmail.rows.length > 0) {
-            req.flash('error', 'Cet email est déjà utilisé.');
-            return res.redirect('/complete-instagram-profile');
-        }
-        
-        // Update user profile with real email
-        await pool.query(`
-            UPDATE sellers 
-            SET email = $1, website = $2
-            WHERE id = $3
-        `, [email, website || '', pendingRegistration.userId]);
-        
-        // Send email verification
-        const verifyLink = `${process.env.VERIFYLINK}/verify?token=${pendingRegistration.verificationToken}`;
-        
-        await transporter.sendMail({
-            to: email,
-            subject: "Confirmez votre email - TajerTrust",
-            html: `
-                <p>Bienvenue sur TajerTrust!</p>
-                <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
-                <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
-                <a href="${verifyLink}">Confirmer mon email</a>
-                <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
-            `
-        });
-        
-        // Send notification to admin
-        await transporter.sendMail({
-            to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
-            subject: "Nouveau compte Instagram à valider - TajerTrust",
-            html: `
-                <p>Un nouveau compte Instagram vient de s'inscrire :</p>
-                <ul>
-                    <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
-                    <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
-                    <li><strong>Email:</strong> ${email}</li>
-                </ul>
-                <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
-            `
-        });
-        
-        // Clear session data
-        delete req.session.pendingRegistration;
-        
-        req.flash('success', `Inscription terminée! Un email de confirmation a été envoyé à ${email}. Votre compte sera validé par notre équipe sous 24-48h.`);
-        res.redirect('/login');
-        
-    } catch (error) {
-        console.error('Complete profile error:', error);
-        req.flash('error', 'Erreur lors de la mise à jour du profil.');
-        res.redirect('/complete-instagram-profile');
-    }
-});
 
 // Step 1: Social verification page (after registration)
 router.get('/verify-social', async (req, res) => {
@@ -1766,401 +1544,329 @@ router.get('/',(req, res) => {
 
 
 // Route de démo spéciale pour Facebook reviewers
-router.get('/auth/instagram/demo-review', async (req, res) => {
-    const { code } = req.query; // verify_code from verification page
+// router.get('/auth/instagram/demo-review', async (req, res) => {
+//     const { code } = req.query; // verify_code from verification page
     
-    if (!code) {
-        req.flash('error', 'Code de vérification manquant.');
-        return res.redirect('/register');
-    }
+//     if (!code) {
+//         req.flash('error', 'Code de vérification manquant.');
+//         return res.redirect('/register');
+//     }
     
-    try {
-        // SIMULATION : Ce qui se passerait avec instagram_business_basic permission
-        const simulatedInstagramData = {
-            id: '17841449592255338',
-            username: 'demo_business_morocco', 
-            account_type: 'BUSINESS',
-            followers_count: 1247,
-            page_name: 'Demo Business Page Morocco'
-        };
+//     try {
+//         // SIMULATION : Ce qui se passerait avec instagram_business_basic permission
+//         const simulatedInstagramData = {
+//             id: '17841449592255338',
+//             username: 'demo_business_morocco', 
+//             account_type: 'BUSINESS',
+//             followers_count: 1247,
+//             page_name: 'Demo Business Page Morocco'
+//         };
         
-        // Mettre à jour le vendeur avec les données simulées
-        await pool.query(`
-            UPDATE sellers 
-            SET 
-                is_social_verified = true,
-                social_verified_at = NOW(),
-                instagram_username = $1,
-                instagram_account_id = $2,
-                instagram_account_type = $3,
-                instagram_page_name = $4,
-                instagram_followers_count = $5
-            WHERE verify_code = $6
-        `, [
-            simulatedInstagramData.username,
-            simulatedInstagramData.id,
-            simulatedInstagramData.account_type,
-            simulatedInstagramData.page_name,
-            simulatedInstagramData.followers_count,
-            code
-        ]);
+//         // Mettre à jour le vendeur avec les données simulées
+//         await pool.query(`
+//             UPDATE sellers 
+//             SET 
+//                 is_social_verified = true,
+//                 social_verified_at = NOW(),
+//                 instagram_username = $1,
+//                 instagram_account_id = $2,
+//                 instagram_account_type = $3,
+//                 instagram_page_name = $4,
+//                 instagram_followers_count = $5
+//             WHERE verify_code = $6
+//         `, [
+//             simulatedInstagramData.username,
+//             simulatedInstagramData.id,
+//             simulatedInstagramData.account_type,
+//             simulatedInstagramData.page_name,
+//             simulatedInstagramData.followers_count,
+//             code
+//         ]);
         
-        req.flash('success', `✅ Instagram Business Account Verified Successfully! Username: @${simulatedInstagramData.username}, Account ID: ${simulatedInstagramData.id} - This demonstrates what would happen with instagram_business_basic permission.`);
-        res.redirect(`/verify-social?code=${code}&verified=true&demo=true`);
+//         req.flash('success', `✅ Instagram Business Account Verified Successfully! Username: @${simulatedInstagramData.username}, Account ID: ${simulatedInstagramData.id} - This demonstrates what would happen with instagram_business_basic permission.`);
+//         res.redirect(`/verify-social?code=${code}&verified=true&demo=true`);
         
-    } catch (error) {
-        console.error('Demo verification error:', error);
-        req.flash('error', 'Demo verification failed.');
-        res.redirect(`/verify-social?code=${code}`);
-    }
-});
+//     } catch (error) {
+//         console.error('Demo verification error:', error);
+//         req.flash('error', 'Demo verification failed.');
+//         res.redirect(`/verify-social?code=${code}`);
+//     }
+// });
 
 // Route pour simuler le flux Facebook OAuth complet
-router.get('/auth/facebook/demo-oauth', (req, res) => {
-    const { code } = req.query;
+// router.get('/auth/facebook/demo-oauth', (req, res) => {
+//     const { code } = req.query;
     
-    // Simuler le délai OAuth
-    setTimeout(() => {
-        res.redirect(`/auth/instagram/demo-review?code=${code}`);
-    }, 2000); // 2 secondes pour simuler le processus OAuth
-});
+//     // Simuler le délai OAuth
+//     setTimeout(() => {
+//         res.redirect(`/auth/instagram/demo-review?code=${code}`);
+//     }, 2000); // 2 secondes pour simuler le processus OAuth
+// });
 
 // Page OAuth simulée pour Facebook reviewers avec Privacy Policy
-router.get('/demo-oauth-page', (req, res) => {
-    const { code } = req.query;
+// router.get('/demo-oauth-page', (req, res) => {
+//     const { code } = req.query;
     
-    res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Facebook Login - TajerTrust</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .oauth-modal {
-            background: white;
-            width: 400px;
-            border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            overflow: hidden;
-            font-size: 14px;
-        }
-        .oauth-header {
-            background: #1877f2;
-            color: white;
-            padding: 12px 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        .facebook-logo {
-            width: 20px;
-            height: 20px;
-            background: white;
-            color: #1877f2;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            margin-right: 10px;
-            font-size: 12px;
-        }
-        .oauth-content {
-            padding: 20px;
-        }
-        .app-info {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #dadde1;
-        }
-        .app-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
-            border-radius: 8px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-        }
-        .app-details h3 {
-            margin: 0;
-            font-size: 16px;
-            color: #1c1e21;
-        }
-        .app-details p {
-            margin: 2px 0 0 0;
-            color: #65676b;
-            font-size: 12px;
-        }
-        .permissions-section {
-            margin: 20px 0;
-        }
-        .permissions-section h4 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #1c1e21;
-        }
-        .permission-item {
-            display: flex;
-            align-items: center;
-            margin: 8px 0;
-            padding: 8px;
-            background: #f7f8fa;
-            border-radius: 6px;
-        }
-        .permission-icon {
-            width: 16px;
-            height: 16px;
-            background: #42a5f5;
-            border-radius: 50%;
-            margin-right: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 10px;
-        }
-        .demo-badge {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-            padding: 10px;
-            border-radius: 6px;
-            margin: 15px 0;
-            font-size: 12px;
-            text-align: center;
-        }
-        .oauth-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        .btn {
-            flex: 1;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn-primary {
-            background: #1877f2;
-            color: white;
-        }
-        .btn-secondary {
-            background: #e4e6ea;
-            color: #1c1e21;
-        }
-        .oauth-footer {
-            border-top: 1px solid #dadde1;
-            padding: 12px 20px;
-            background: #f7f8fa;
-            text-align: center;
-            font-size: 11px;
-        }
-        .oauth-footer a {
-            color: #1877f2;
-            text-decoration: none;
-            margin: 0 8px;
-        }
-        .oauth-footer a:hover {
-            text-decoration: underline;
-        }
-        .close-btn {
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <div class="oauth-modal">
-        <div class="oauth-header">
-            <div class="facebook-logo">f</div>
-            Facebook Login
-            <button class="close-btn" onclick="window.history.back()">×</button>
-        </div>
+//     res.send(`
+// <!DOCTYPE html>
+// <html>
+// <head>
+//     <title>Facebook Login - TajerTrust</title>
+//     <style>
+//         body { 
+//             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+//             background: #f0f2f5;
+//             padding: 0;
+//             margin: 0;
+//             display: flex;
+//             justify-content: center;
+//             align-items: center;
+//             min-height: 100vh;
+//         }
+//         .oauth-modal {
+//             background: white;
+//             width: 400px;
+//             border-radius: 8px;
+//             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+//             overflow: hidden;
+//             font-size: 14px;
+//         }
+//         .oauth-header {
+//             background: #1877f2;
+//             color: white;
+//             padding: 12px 20px;
+//             font-weight: 600;
+//             display: flex;
+//             align-items: center;
+//         }
+//         .facebook-logo {
+//             width: 20px;
+//             height: 20px;
+//             background: white;
+//             color: #1877f2;
+//             border-radius: 4px;
+//             display: flex;
+//             align-items: center;
+//             justify-content: center;
+//             font-weight: bold;
+//             margin-right: 10px;
+//             font-size: 12px;
+//         }
+//         .oauth-content {
+//             padding: 20px;
+//         }
+//         .app-info {
+//             display: flex;
+//             align-items: center;
+//             margin-bottom: 20px;
+//             padding-bottom: 15px;
+//             border-bottom: 1px solid #dadde1;
+//         }
+//         .app-icon {
+//             width: 40px;
+//             height: 40px;
+//             background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+//             border-radius: 8px;
+//             margin-right: 12px;
+//             display: flex;
+//             align-items: center;
+//             justify-content: center;
+//             color: white;
+//             font-weight: bold;
+//         }
+//         .app-details h3 {
+//             margin: 0;
+//             font-size: 16px;
+//             color: #1c1e21;
+//         }
+//         .app-details p {
+//             margin: 2px 0 0 0;
+//             color: #65676b;
+//             font-size: 12px;
+//         }
+//         .permissions-section {
+//             margin: 20px 0;
+//         }
+//         .permissions-section h4 {
+//             margin: 0 0 10px 0;
+//             font-size: 14px;
+//             color: #1c1e21;
+//         }
+//         .permission-item {
+//             display: flex;
+//             align-items: center;
+//             margin: 8px 0;
+//             padding: 8px;
+//             background: #f7f8fa;
+//             border-radius: 6px;
+//         }
+//         .permission-icon {
+//             width: 16px;
+//             height: 16px;
+//             background: #42a5f5;
+//             border-radius: 50%;
+//             margin-right: 10px;
+//             display: flex;
+//             align-items: center;
+//             justify-content: center;
+//             color: white;
+//             font-size: 10px;
+//         }
+//         .demo-badge {
+//             background: #fff3cd;
+//             border: 1px solid #ffeaa7;
+//             color: #856404;
+//             padding: 10px;
+//             border-radius: 6px;
+//             margin: 15px 0;
+//             font-size: 12px;
+//             text-align: center;
+//         }
+//         .oauth-buttons {
+//             display: flex;
+//             gap: 10px;
+//             margin: 20px 0;
+//         }
+//         .btn {
+//             flex: 1;
+//             padding: 8px 16px;
+//             border: none;
+//             border-radius: 6px;
+//             font-weight: 600;
+//             cursor: pointer;
+//             font-size: 14px;
+//         }
+//         .btn-primary {
+//             background: #1877f2;
+//             color: white;
+//         }
+//         .btn-secondary {
+//             background: #e4e6ea;
+//             color: #1c1e21;
+//         }
+//         .oauth-footer {
+//             border-top: 1px solid #dadde1;
+//             padding: 12px 20px;
+//             background: #f7f8fa;
+//             text-align: center;
+//             font-size: 11px;
+//         }
+//         .oauth-footer a {
+//             color: #1877f2;
+//             text-decoration: none;
+//             margin: 0 8px;
+//         }
+//         .oauth-footer a:hover {
+//             text-decoration: underline;
+//         }
+//         .close-btn {
+//             position: absolute;
+//             top: 8px;
+//             right: 12px;
+//             background: none;
+//             border: none;
+//             color: white;
+//             font-size: 16px;
+//             cursor: pointer;
+//         }
+//     </style>
+// </head>
+// <body>
+//     <div class="oauth-modal">
+//         <div class="oauth-header">
+//             <div class="facebook-logo">f</div>
+//             Facebook Login
+//             <button class="close-btn" onclick="window.history.back()">×</button>
+//         </div>
         
-        <div class="oauth-content">
-            <div class="app-info">
-                <div class="app-icon">T</div>
-                <div class="app-details">
-                    <h3>TajerTrust</h3>
-                    <p>Fraud protection for Moroccan sellers</p>
-                </div>
-            </div>
+//         <div class="oauth-content">
+//             <div class="app-info">
+//                 <div class="app-icon">T</div>
+//                 <div class="app-details">
+//                     <h3>TajerTrust</h3>
+//                     <p>Fraud protection for Moroccan sellers</p>
+//                 </div>
+//             </div>
             
-            <p style="color: #1c1e21; margin-bottom: 15px;">
-                <strong>TajerTrust</strong> wants to access your Instagram business account to verify account ownership for fraud prevention.
-            </p>
+//             <p style="color: #1c1e21; margin-bottom: 15px;">
+//                 <strong>TajerTrust</strong> wants to access your Instagram business account to verify account ownership for fraud prevention.
+//             </p>
             
-            <div class="permissions-section">
-                <h4>This app will receive:</h4>
-                <div class="permission-item">
-                    <div class="permission-icon">📷</div>
-                    <div>
-                        <strong>instagram_business_basic</strong><br>
-                        <small style="color: #65676b;">Read basic info from your Instagram business account</small>
-                    </div>
-                </div>
-                <div class="permission-item">
-                    <div class="permission-icon">📄</div>
-                    <div>
-                        <strong>business_management</strong><br>
-                        <small style="color: #65676b;">Access pages in Business Manager</small>
-                    </div>
-                </div>
-                <div class="permission-item">
-                    <div class="permission-icon">📋</div>
-                    <div>
-                        <strong>pages_show_list</strong><br>
-                        <small style="color: #65676b;">See list of pages you manage</small>
-                    </div>
-                </div>
-            </div>
+//             <div class="permissions-section">
+//                 <h4>This app will receive:</h4>
+//                 <div class="permission-item">
+//                     <div class="permission-icon">📷</div>
+//                     <div>
+//                         <strong>instagram_business_basic</strong><br>
+//                         <small style="color: #65676b;">Read basic info from your Instagram business account</small>
+//                     </div>
+//                 </div>
+//                 <div class="permission-item">
+//                     <div class="permission-icon">📄</div>
+//                     <div>
+//                         <strong>business_management</strong><br>
+//                         <small style="color: #65676b;">Access pages in Business Manager</small>
+//                     </div>
+//                 </div>
+//                 <div class="permission-item">
+//                     <div class="permission-icon">📋</div>
+//                     <div>
+//                         <strong>pages_show_list</strong><br>
+//                         <small style="color: #65676b;">See list of pages you manage</small>
+//                     </div>
+//                 </div>
+//             </div>
             
-            <div class="demo-badge">
-                <strong>🎬 DEMO MODE FOR FACEBOOK REVIEWERS</strong><br>
-                This simulates the complete OAuth flow with instagram_business_basic permission.
-            </div>
+//             <div class="demo-badge">
+//                 <strong>🎬 DEMO MODE FOR FACEBOOK REVIEWERS</strong><br>
+//                 This simulates the complete OAuth flow with instagram_business_basic permission.
+//             </div>
             
-            <div class="oauth-buttons">
-                <button class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
-                <button class="btn btn-primary" onclick="proceedWithAuth()">Continue</button>
-            </div>
-        </div>
+//             <div class="oauth-buttons">
+//                 <button class="btn btn-secondary" onclick="window.history.back()">Cancel</button>
+//                 <button class="btn btn-primary" onclick="proceedWithAuth()">Continue</button>
+//             </div>
+//         </div>
         
-        <div class="oauth-footer">
-            By continuing, you agree to share the requested info with TajerTrust.
-            <br>
-            <a href="/privacy" target="_blank">Privacy Policy</a> • 
-            <a href="/terms" target="_blank">Terms of Service</a> • 
-            <a href="https://www.facebook.com/privacy/policy" target="_blank">Facebook Data Policy</a>
-        </div>
-    </div>
+//         <div class="oauth-footer">
+//             By continuing, you agree to share the requested info with TajerTrust.
+//             <br>
+//             <a href="/privacy" target="_blank">Privacy Policy</a> • 
+//             <a href="/terms" target="_blank">Terms of Service</a> • 
+//             <a href="https://www.facebook.com/privacy/policy" target="_blank">Facebook Data Policy</a>
+//         </div>
+//     </div>
     
-    <script>
-        function proceedWithAuth() {
-            // Simulate processing
-            document.querySelector('.btn-primary').innerHTML = 'Processing...';
-            document.querySelector('.btn-primary').disabled = true;
+//     <script>
+//         function proceedWithAuth() {
+//             // Simulate processing
+//             document.querySelector('.btn-primary').innerHTML = 'Processing...';
+//             document.querySelector('.btn-primary').disabled = true;
             
-            // Redirect after 2 seconds to simulate OAuth
-            setTimeout(() => {
-                window.location.href = '/auth/instagram/demo-review?code=${code}';
-            }, 2000);
-        }
+//             // Redirect after 2 seconds to simulate OAuth
+//             setTimeout(() => {
+//                 window.location.href = '/auth/instagram/demo-review?code=${code}';
+//             }, 2000);
+//         }
         
-        // Auto-highlight Privacy Policy link for demo
-        setTimeout(() => {
-            const privacyLink = document.querySelector('a[href="/privacy"]');
-            privacyLink.style.background = '#fff3cd';
-            privacyLink.style.padding = '2px 4px';
-            privacyLink.style.borderRadius = '3px';
-            privacyLink.style.fontWeight = 'bold';
-        }, 1000);
-    </script>
-</body>
-</html>
-    `);
-});
+//         // Auto-highlight Privacy Policy link for demo
+//         setTimeout(() => {
+//             const privacyLink = document.querySelector('a[href="/privacy"]');
+//             privacyLink.style.background = '#fff3cd';
+//             privacyLink.style.padding = '2px 4px';
+//             privacyLink.style.borderRadius = '3px';
+//             privacyLink.style.fontWeight = 'bold';
+//         }, 1000);
+//     </script>
+// </body>
+// </html>
+//     `);
+// });
 
 
 // Helper function to get Instagram business account (same as before)
 
-async function getInstagramBusinessAccount(access_token) {
-    try {
-        console.log('=== TESTING DIRECT PAGE ACCESS ===');
-        
-        const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
-        console.log('User info:', meResponse.data);
-        
-        // Test direct access to your known page IDs
-        const knownPageIds = ['102417398202241', '103514939343929', '230625368919978'];
-        
-        for (const pageId of knownPageIds) {
-            try {
-                console.log(`Testing direct access to page ${pageId}...`);
-                const pageResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=id,name&access_token=${access_token}`);
-                console.log(`Page ${pageId} response:`, pageResponse.data);
-                
-                // Check for Instagram Business account
-                const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${access_token}`);
-                console.log(`Instagram check for ${pageId}:`, igResponse.data);
-                
-                if (igResponse.data.instagram_business_account) {
-                    const igAccountId = igResponse.data.instagram_business_account.id;
-                    console.log(`Found Instagram Business account: ${igAccountId}`);
-                    
-                    // Get Instagram account details with correct fields
-                    try {
-                        // Use only basic fields that are available
-                        const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${access_token}`);
-                        console.log('Instagram account details:', igDetailsResponse.data);
-                        
-                        const igAccount = igDetailsResponse.data;
-                        
-                        // Since we found it through instagram_business_account, we know it's a business account
-                        if (igAccount.id && igAccount.username) {
-                            console.log('✅ Valid Instagram Business account found!');
-                            return {
-                                id: igAccount.id,
-                                username: igAccount.username,
-                                account_type: 'BUSINESS', // We know it's business since it came from instagram_business_account
-                                page_name: pageResponse.data.name,
-                                page_id: pageId,
-                                access_token: access_token
-                            };
-                        }
-                    } catch (igDetailsError) {
-                        console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data);
-                        
-                        // If basic fields fail, still return what we know
-                        console.log('Returning basic info since Instagram Business account exists');
-                        return {
-                            id: igAccountId,
-                            username: 'instagram_business_user', // fallback
-                            account_type: 'BUSINESS',
-                            page_name: pageResponse.data.name,
-                            page_id: pageId,
-                            access_token: access_token
-                        };
-                    }
-                }
-                
-            } catch (pageError) {
-                console.log(`Cannot access page ${pageId}:`, pageError.response?.data?.error?.message);
-            }
-        }
-        
-        console.log('No valid Instagram Business accounts found');
-        return null;
-        
-    } catch (error) {
-        console.error('Direct access test failed:', error.response?.data || error.message);
-        return null;
-    }
-}
+
 
 // async function getInstagramBusinessAccount(access_token) {
 //     try {
@@ -2353,6 +2059,190 @@ async function getInstagramBusinessAccount(access_token) {
 // });
 
 
+
+// async function getInstagramBusinessAccount(access_token) {
+//     try {
+//         console.log('=== TESTING DIRECT PAGE ACCESS ===');
+        
+//         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
+//         console.log('User info:', meResponse.data);
+        
+//         // Test direct access to your known page IDs
+//         const knownPageIds = ['102417398202241', '103514939343929', '230625368919978'];
+        
+//         for (const pageId of knownPageIds) {
+//             try {
+//                 console.log(`Testing direct access to page ${pageId}...`);
+//                 const pageResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=id,name&access_token=${access_token}`);
+//                 console.log(`Page ${pageId} response:`, pageResponse.data);
+                
+//                 // Check for Instagram Business account
+//                 const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${access_token}`);
+//                 console.log(`Instagram check for ${pageId}:`, igResponse.data);
+                
+//                 if (igResponse.data.instagram_business_account) {
+//                     const igAccountId = igResponse.data.instagram_business_account.id;
+//                     console.log(`Found Instagram Business account: ${igAccountId}`);
+                    
+//                     // Get Instagram account details with correct fields
+//                     try {
+//                         // Use only basic fields that are available
+//                         const igDetailsResponse = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${access_token}`);
+//                         console.log('Instagram account details:', igDetailsResponse.data);
+                        
+//                         const igAccount = igDetailsResponse.data;
+                        
+//                         // Since we found it through instagram_business_account, we know it's a business account
+//                         if (igAccount.id && igAccount.username) {
+//                             console.log('✅ Valid Instagram Business account found!');
+//                             return {
+//                                 id: igAccount.id,
+//                                 username: igAccount.username,
+//                                 account_type: 'BUSINESS', // We know it's business since it came from instagram_business_account
+//                                 page_name: pageResponse.data.name,
+//                                 page_id: pageId,
+//                                 access_token: access_token
+//                             };
+//                         }
+//                     } catch (igDetailsError) {
+//                         console.log(`Error getting Instagram details for ${igAccountId}:`, igDetailsError.response?.data);
+                        
+//                         // If basic fields fail, still return what we know
+//                         console.log('Returning basic info since Instagram Business account exists');
+//                         return {
+//                             id: igAccountId,
+//                             username: 'instagram_business_user', // fallback
+//                             account_type: 'BUSINESS',
+//                             page_name: pageResponse.data.name,
+//                             page_id: pageId,
+//                             access_token: access_token
+//                         };
+//                     }
+//                 }
+                
+//             } catch (pageError) {
+//                 console.log(`Cannot access page ${pageId}:`, pageError.response?.data?.error?.message);
+//             }
+//         }
+        
+//         console.log('No valid Instagram Business accounts found');
+//         return null;
+        
+//     } catch (error) {
+//         console.error('Direct access test failed:', error.response?.data || error.message);
+//         return null;
+//     }
+// }
+
+// async function getInstagramBusinessAccountWithPages(access_token) {
+//     try {
+//         console.log('=== Getting Facebook Pages with Instagram Accounts ===');
+        
+//         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
+//         console.log('User info:', meResponse.data);
+        
+//         // Get user's Facebook pages using pages_show_list permission
+//         const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
+//         console.log('Pages API response:', pagesResponse.data);
+        
+//         const pagesWithInstagram = [];
+        
+//         if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
+//             for (const page of pagesResponse.data.data) {
+//                 try {
+//                     console.log(`Checking page: ${page.name} (${page.id})`);
+                    
+//                     // Check for Instagram Business account
+//                     const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+                    
+//                     if (igResponse.data.instagram_business_account) {
+//                         const igAccountId = igResponse.data.instagram_business_account.id;
+//                         console.log(`Found Instagram account: ${igAccountId}`);
+                        
+//                         // Get Instagram details
+//                         const igDetails = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${page.access_token}`);
+                        
+//                         pagesWithInstagram.push({
+//                             page_id: page.id,
+//                             page_name: page.name,
+//                             instagram_id: igDetails.data.id,
+//                             instagram_username: igDetails.data.username,
+//                             page_access_token: page.access_token
+//                         });
+//                     }
+//                 } catch (pageError) {
+//                     console.log(`Error checking page ${page.name}:`, pageError.response?.data?.error?.message);
+//                 }
+//             }
+//         }
+        
+//         console.log(`Found ${pagesWithInstagram.length} pages with Instagram accounts`);
+//         return pagesWithInstagram;
+        
+//     } catch (error) {
+//         console.error('Error getting pages:', error.response?.data || error.message);
+//         return [];
+//     }
+// }
+
+async function getInstagramBusinessAccountWithPages(access_token) {
+    try {
+        console.log('=== Getting Facebook Pages with Instagram Accounts (HARDCODED FOR TESTING) ===');
+        
+        const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
+        console.log('User info:', meResponse.data);
+        
+        // HARDCODED: Your pages from the screenshot
+        const knownPageIds = [
+            '230625368919978',  // By Tyma
+            '103532657699396',  // Hijabi Store Maroc  
+            '373348436092988'   // Quickdrawacademy
+        ];
+        
+        const pagesWithInstagram = [];
+        
+        for (const pageId of knownPageIds) {
+            try {
+                console.log(`Checking hardcoded page: ${pageId}`);
+                
+                // Get page details
+                const pageResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=id,name&access_token=${access_token}`);
+                console.log(`Page response:`, pageResponse.data);
+                
+                // Check for Instagram Business account
+                const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${access_token}`);
+                
+                if (igResponse.data.instagram_business_account) {
+                    const igAccountId = igResponse.data.instagram_business_account.id;
+                    console.log(`Found Instagram account: ${igAccountId}`);
+                    
+                    // Get Instagram details
+                    const igDetails = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${access_token}`);
+                    
+                    pagesWithInstagram.push({
+                        page_id: pageResponse.data.id,
+                        page_name: pageResponse.data.name,
+                        instagram_id: igDetails.data.id,
+                        instagram_username: igDetails.data.username,
+                        page_access_token: access_token
+                    });
+                    
+                    console.log(`✅ Added: ${pageResponse.data.name} (@${igDetails.data.username})`);
+                }
+            } catch (pageError) {
+                console.log(`❌ Error checking page ${pageId}:`, pageError.response?.data?.error?.message);
+                // Continue to next page
+            }
+        }
+        
+        console.log(`\n📊 Total found: ${pagesWithInstagram.length} pages with Instagram accounts`);
+        return pagesWithInstagram;
+        
+    } catch (error) {
+        console.error('Error getting pages:', error.response?.data || error.message);
+        return [];
+    }
+}
 router.get('/auth/instagram/login-callback', async (req, res) => {
     const { code, state } = req.query;
     
@@ -2440,6 +2330,423 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
         });
         req.flash('error', 'Erreur lors de la connexion Instagram. Veuillez réessayer.');
         res.redirect('/login');
+    }
+});
+
+// Instagram Business Registration callback
+// router.get('/auth/instagram/register-callback', async (req, res) => {
+//     const { code, state } = req.query;
+    
+//     console.log('Instagram register callback received:', { code: !!code, state });
+    
+//     if (!state || !state.startsWith('register_instagram_')) {
+//         console.log('Invalid state for registration:', state);
+//         req.flash('error', 'Session d\'inscription invalide.');
+//         return res.redirect('/register');
+//     }
+    
+//     try {
+//         console.log('Exchanging code for token (registration)...');
+//         const isProduction = process.env.NODE_ENV === 'production' || req.get('host').includes('tajertrust.com');
+//         const redirectUri = isProduction 
+//             ? 'https://tajertrust.com/auth/instagram/register-callback'
+//             : 'http://localhost:3000/auth/instagram/register-callback';
+            
+//         console.log('Using redirect URI for registration:', redirectUri);
+        
+//         const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        
+//         console.log('Token response received for registration');
+//         const access_token = tokenResponse.data.access_token;
+        
+//         console.log('Getting Instagram business account for registration...');
+//         const instagramAccount = await getInstagramBusinessAccount(access_token);
+//         console.log('Instagram account for registration:', instagramAccount);
+        
+//         if (instagramAccount) {
+//             // Check if this Instagram account is already registered
+//             const existingUser = await pool.query(`
+//                 SELECT id, email, business_name
+//                 FROM sellers 
+//                 WHERE instagram_account_id = $1
+//             `, [instagramAccount.id]);
+            
+//             if (existingUser.rows.length > 0) {
+//                 const user = existingUser.rows[0];
+                
+//                 req.flash('error', `Ce compte Instagram est déjà associé à un compte TajerTrust (${user.email}). Veuillez vous connecter.`);
+//                 return res.redirect('/login');
+//             }
+            
+//             // Create new user account with Instagram data
+//             try {
+//                 const verificationToken = crypto.randomBytes(32).toString('hex');
+//                 const verifyCode = 'verify-' + crypto.randomBytes(3).toString('hex');
+                
+//                 // Insert new seller with Instagram data
+//                 const result = await pool.query(`
+//                     INSERT INTO sellers (
+//                         business_name, 
+//                         email, 
+//                         social_link,
+//                         instagram_account_id,
+//                         instagram_username,
+//                         instagram_account_type,
+//                         instagram_page_name,
+//                         instagram_followers_count,
+//                         is_social_verified,
+//                         social_verified_at,
+//                         registration_method,
+//                         is_verified,
+//                         is_validated,
+//                         verification_token,
+//                         verify_code,
+//                         created_at
+//                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10, $11, $12, $13,$14, NOW())
+//                     RETURNING id, email, business_name
+//                 `, [
+//                     instagramAccount.page_name || instagramAccount.username, // Use page name as business name
+//                     `${instagramAccount.username}@instagram-temp.com`, // Temporary email - user will update
+//                     `https://instagram.com/${instagramAccount.username}`,
+//                     instagramAccount.id,
+//                     instagramAccount.username,
+//                     instagramAccount.account_type,
+//                     instagramAccount.page_name,
+//                     0,
+//                     true, // Instagram is already verified
+//                     'instagram',
+//                     false, // Email not verified yet
+//                     false, // not validated by Admin
+//                     verificationToken,
+//                     verifyCode
+//                 ]);
+                
+//                 const newUser = result.rows[0];
+//                 console.log('New Instagram user created:', newUser);
+                
+//                // Store temporary registration data in session (for completing profile)
+//                 req.session.pendingRegistration = {
+//                     userId: newUser.id,
+//                     instagram_username: instagramAccount.username,
+//                     business_name: newUser.business_name,
+//                     verificationToken: verificationToken
+//                 };
+                
+//                 req.flash('success', `🎉 Inscription réussie avec Instagram (@${instagramAccount.username})! Veuillez maintenant compléter votre profil.`);
+//                 res.redirect('/complete-instagram-profile');
+
+//             } catch (dbError) {
+//                 console.error('Database error during Instagram registration:', dbError);
+//                 if (dbError.code === '23505') {
+//                     req.flash('error', 'Ce compte Instagram est déjà utilisé.');
+//                 } else {
+//                     req.flash('error', 'Erreur lors de la création du compte.');
+//                 }
+//                 res.redirect('/register');
+//             }
+            
+//         } else {
+//             console.log('No Instagram account found for registration');
+//             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur.');
+//             res.redirect('/register');
+//         }
+        
+//     } catch (error) {
+//         console.error('Instagram registration error details:', {
+//             message: error.message,
+//             response: error.response?.data,
+//             status: error.response?.status
+//         });
+//         req.flash('error', 'Erreur lors de l\'inscription Instagram. Veuillez réessayer.');
+//         res.redirect('/register');
+//     }
+// });
+
+
+// TEST THIS 
+router.get('/auth/instagram/register-callback', async (req, res) => {
+    const { code, state } = req.query;
+    
+    if (!state || !state.startsWith('register_instagram_')) {
+        req.flash('error', 'Session d\'inscription invalide.');
+        return res.redirect('/register');
+    }
+    
+    try {
+        const isProduction = process.env.NODE_ENV === 'production' || req.get('host').includes('tajertrust.com');
+        const redirectUri = isProduction 
+            ? 'https://tajertrust.com/auth/instagram/register-callback'
+            : 'http://localhost:3000/auth/instagram/register-callback';
+        
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        const access_token = tokenResponse.data.access_token;
+        
+        // Get all pages with Instagram accounts
+        const pagesWithInstagram = await getInstagramBusinessAccountWithPages(access_token);
+        
+        if (pagesWithInstagram.length === 0) {
+            req.flash('error', 'Aucune page Facebook avec compte Instagram Business trouvée.');
+            return res.redirect('/register');
+        }
+        
+        // If only one page, auto-select it
+        if (pagesWithInstagram.length === 1) {
+            const selected = pagesWithInstagram[0];
+            return createUserAndRedirect(req, res, selected);
+        }
+        
+        // If multiple pages, show selection page
+        req.session.oauth_data = {
+            access_token,
+            pages: pagesWithInstagram
+        };
+        
+        res.render('select-facebook-page', {
+            title: 'Sélectionner Page Facebook',
+            pages: pagesWithInstagram,
+            messages: req.flash()
+        });
+        
+    } catch (error) {
+        console.error('Registration error:', error);
+        req.flash('error', 'Erreur lors de l\'inscription.');
+        res.redirect('/register');
+    }
+});
+
+// Helper function to create user
+async function createUserAndRedirect(req, res, selectedPage) {
+    try {
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        
+        const result = await pool.query(`
+            INSERT INTO sellers (
+                business_name, 
+                email, 
+                instagram_account_id,
+                instagram_username,
+                instagram_page_name,
+                verification_token,
+                created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING id
+        `, [
+            selectedPage.instagram_username,
+            `${selectedPage.instagram_username}@instagram-temp.com`,
+            selectedPage.instagram_id,
+            selectedPage.instagram_username,
+            selectedPage.page_name,
+            verificationToken
+        ]);
+        
+        req.session.pendingRegistration = {
+            userId: result.rows[0].id,
+            instagram_username: selectedPage.instagram_username,
+            business_name: selectedPage.instagram_username,
+            verificationToken
+        };
+        
+        res.redirect('/complete-instagram-profile');
+    } catch (error) {
+        console.error('User creation error:', error);
+        req.flash('error', 'Erreur lors de la création du compte.');
+        res.redirect('/register');
+    }
+}
+
+// New route: Handle page selection
+router.post('/select-facebook-page', async (req, res) => {
+    const { page_id, instagram_id, instagram_username } = req.body;
+    const oauth_data = req.session.oauth_data;
+    
+    if (!oauth_data) {
+        req.flash('error', 'Session expirée.');
+        return res.redirect('/register');
+    }
+    
+    try {
+        // Check if Instagram account already exists
+        const existingUser = await pool.query(
+            'SELECT id, email, business_name FROM sellers WHERE instagram_account_id = $1',
+            [instagram_id]
+        );
+        
+        if (existingUser.rows.length > 0) {
+            req.flash('error', `Ce compte Instagram (@${instagram_username}) est déjà enregistré. Veuillez vous connecter.`);
+            return res.redirect('/login');
+        }
+        
+        // Also check for duplicate email
+        const email = `${instagram_username}@instagram-temp.com`;
+        const existingEmail = await pool.query(
+            'SELECT id FROM sellers WHERE email = $1',
+            [email]
+        );
+        
+        if (existingEmail.rows.length > 0) {
+            // If email exists but different Instagram ID, generate unique email
+            const uniqueEmail = `${instagram_username}_${Date.now()}@instagram-temp.com`;
+            
+            const result = await pool.query(`
+                INSERT INTO sellers (
+                    business_name, 
+                    email, 
+                    instagram_account_id,
+                    instagram_username,
+                    instagram_page_name,
+                    verification_token,
+                    created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                RETURNING id
+            `, [
+                instagram_username,
+                uniqueEmail, // Use unique email
+                instagram_id,
+                instagram_username,
+                req.body.page_name || instagram_username,
+                crypto.randomBytes(32).toString('hex')
+            ]);
+            
+            req.session.pendingRegistration = {
+                userId: result.rows[0].id,
+                instagram_username: instagram_username,
+                business_name: instagram_username,
+                verificationToken: crypto.randomBytes(32).toString('hex')
+            };
+            
+            req.flash('success', `Compte créé avec @${instagram_username}`);
+            return res.redirect('/complete-instagram-profile');
+        }
+        
+        // Normal insertion if no conflicts
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        
+        const result = await pool.query(`
+            INSERT INTO sellers (
+                business_name, 
+                email, 
+                instagram_account_id,
+                instagram_username,
+                instagram_page_name,
+                verification_token,
+                created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING id
+        `, [
+            instagram_username,
+            email,
+            instagram_id,
+            instagram_username,
+            req.body.page_name || instagram_username,
+            verificationToken
+        ]);
+        
+        req.session.pendingRegistration = {
+            userId: result.rows[0].id,
+            instagram_username: instagram_username,
+            business_name: instagram_username,
+            verificationToken: verificationToken
+        };
+        
+        res.redirect('/complete-instagram-profile');
+        
+    } catch (error) {
+        console.error('Page selection error:', error);
+        req.flash('error', 'Erreur lors de la création du compte.');
+        res.redirect('/register');
+    }
+});
+// Complete Instagram profile route (GET)
+router.get('/complete-instagram-profile', (req, res) => {
+    const pendingRegistration = req.session.pendingRegistration;
+    
+    if (!pendingRegistration || !pendingRegistration.userId) {
+        req.flash('error', 'Session d\'inscription expirée. Veuillez recommencer.');
+        return res.redirect('/register');
+    }
+    
+    res.render('complete-instagram-profile', {
+        title: 'Compléter votre profil',
+        user: pendingRegistration, // Use pending registration data
+        messages: {
+            error: req.flash('error'),
+            success: req.flash('success')
+        },
+        currentPath: req.path
+    });
+});
+
+// Complete Instagram profile route (POST)
+router.post('/complete-instagram-profile', async (req, res) => {
+    const { email, website } = req.body;
+    const pendingRegistration = req.session.pendingRegistration;
+    
+    if (!pendingRegistration || !pendingRegistration.userId) {
+        req.flash('error', 'Session d\'inscription expirée. Veuillez recommencer.');
+        return res.redirect('/register');
+    }
+    
+    try {
+        // Validate email
+        if (!email || !email.includes('@')) {
+            req.flash('error', 'Veuillez fournir un email valide.');
+            return res.redirect('/complete-instagram-profile');
+        }
+        
+        // Check if email is already used
+        const existingEmail = await pool.query('SELECT id FROM sellers WHERE email = $1 AND id != $2', [email, pendingRegistration.userId]);
+        if (existingEmail.rows.length > 0) {
+            req.flash('error', 'Cet email est déjà utilisé.');
+            return res.redirect('/complete-instagram-profile');
+        }
+        
+        // Update user profile with real email
+        await pool.query(`
+            UPDATE sellers 
+            SET email = $1, website = $2
+            WHERE id = $3
+        `, [email, website || '', pendingRegistration.userId]);
+        
+        // Send email verification
+        const verifyLink = `${process.env.VERIFYLINK}/verify?token=${pendingRegistration.verificationToken}`;
+        
+        await transporter.sendMail({
+            to: email,
+            subject: "Confirmez votre email - TajerTrust",
+            html: `
+                <p>Bienvenue sur TajerTrust!</p>
+                <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
+                <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
+                <a href="${verifyLink}">Confirmer mon email</a>
+                <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
+            `
+        });
+        
+        // Send notification to admin
+        await transporter.sendMail({
+            to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
+            subject: "Nouveau compte Instagram à valider - TajerTrust",
+            html: `
+                <p>Un nouveau compte Instagram vient de s'inscrire :</p>
+                <ul>
+                    <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
+                    <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
+                    <li><strong>Email:</strong> ${email}</li>
+                </ul>
+                <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
+            `
+        });
+        
+        // Clear session data
+        delete req.session.pendingRegistration;
+        
+        req.flash('success', `Inscription terminée! Un email de confirmation a été envoyé à ${email}. Votre compte sera validé par notre équipe sous 24-48h.`);
+        res.redirect('/login');
+        
+    } catch (error) {
+        console.error('Complete profile error:', error);
+        req.flash('error', 'Erreur lors de la mise à jour du profil.');
+        res.redirect('/complete-instagram-profile');
     }
 });
 module.exports = router;
