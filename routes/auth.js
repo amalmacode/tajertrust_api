@@ -1850,9 +1850,12 @@ async function createUserAndRedirect(req, res, selectedPage) {
                 instagram_account_id,
                 instagram_username,
                 instagram_page_name,
+                is_social_verified,        
+                social_verified_at,        
+                registration_method, 
                 verification_token,
                 created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            ) VALUES ($1, $2, $3, $4, $5, $6, NOW(),$7, $8, NOW())
             RETURNING id
         `, [
             selectedPage.instagram_username,
@@ -1860,6 +1863,8 @@ async function createUserAndRedirect(req, res, selectedPage) {
             selectedPage.instagram_id,
             selectedPage.instagram_username,
             selectedPage.page_name,
+            true,                         // is_social_verified = true
+             'instagram',                  // registration_method
             verificationToken
         ]);
         
