@@ -108,7 +108,7 @@ function registerWithInstagramBusiness() {
   const baseUrl = isLocalhost ? 'http://localhost:3000' : 'https://tajertrust.com';
   const redirectUri = encodeURIComponent(`${baseUrl}/auth/instagram/register-callback`);
   
-  const scope = 'pages_show_list,instagram_basic,pages_manage_metadata,business_management';
+  const scope = 'pages_show_list,instagram_basic';
 
   const instagramAuthUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&state=${state}`;
   

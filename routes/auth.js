@@ -1546,144 +1546,239 @@ router.get('/',(req, res) => {
 
 // async function getInstagramBusinessAccountWithPages(access_token) {
 //     try {
-//         console.log('=== Getting Facebook Pages with Instagram Accounts (DYNAMIC) ===');
+//         console.log('=== Getting Facebook Pages with Instagram Accounts (COMPREHENSIVE) ===');
         
 //         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
 //         console.log('User info:', meResponse.data);
         
-//         // Use pages_show_list permission to get user's pages
-//         const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
-//         console.log('Pages API response:', pagesResponse.data);
-        
 //         const pagesWithInstagram = [];
         
-//         if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
-//             for (const page of pagesResponse.data.data) {
-//                 try {
-//                     console.log(`Checking page: ${page.name} (${page.id})`);
-                    
-//                     // Check for Instagram Business account using page's access token
-//                     const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
-                    
-//                     if (igResponse.data.instagram_business_account) {
-//                         const igAccountId = igResponse.data.instagram_business_account.id;
-//                         console.log(`Found Instagram account: ${igAccountId}`);
-                        
-//                         // Get Instagram details using page's access token
-//                         const igDetails = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${page.access_token}`);
-                        
-//                         pagesWithInstagram.push({
-//                             page_id: page.id,
-//                             page_name: page.name,
-//                             instagram_id: igDetails.data.id,
-//                             instagram_username: igDetails.data.username,
-//                             page_access_token: page.access_token
-//                         });
-                        
-//                         console.log(`✅ Added: ${page.name} (@${igDetails.data.username})`);
-//                     } else {
-//                         console.log(`No Instagram account linked to page: ${page.name}`);
-//                     }
-//                 } catch (pageError) {
-//                     console.log(`❌ Error checking page ${page.name}:`, pageError.response?.data?.error?.message);
-//                     // Continue to next page
+//         // Method 1: Get pages directly managed by user (not in Business Manager)
+//         try {
+//             const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
+//             console.log('Direct pages API response:', pagesResponse.data);
+            
+//             if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
+//                 for (const page of pagesResponse.data.data) {
+//                     await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
 //                 }
 //             }
-//         } else {
-//             console.log('No Facebook pages found for this user');
+//         } catch (error) {
+//             console.log('Direct pages access failed:', error.response?.data?.error?.message);
 //         }
         
-//         console.log(`📊 Total found: ${pagesWithInstagram.length} pages with Instagram accounts`);
-//         return pagesWithInstagram;
+//         // Method 2: Get pages through Business Manager
+//         try {
+//             const businessesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${access_token}`);
+//             console.log('Businesses response:', businessesResponse.data);
+            
+//             if (businessesResponse.data.data && businessesResponse.data.data.length > 0) {
+//                 for (const business of businessesResponse.data.data) {
+//                     try {
+//                         // Get pages owned by this business
+//                         const businessPagesResponse = await axios.get(`https://graph.facebook.com/v21.0/${business.id}/owned_pages?fields=id,name,access_token&access_token=${access_token}`);
+                        
+//                         if (businessPagesResponse.data.data) {
+//                             for (const page of businessPagesResponse.data.data) {
+//                                 await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
+//                             }
+//                         }
+//                     } catch (businessPageError) {
+//                         console.log(`Error getting pages for business ${business.name}:`, businessPageError.response?.data?.error?.message);
+//                     }
+//                 }
+//             }
+//         } catch (businessError) {
+//             console.log('Business Manager access failed:', businessError.response?.data?.error?.message);
+//         }
+        
+//         // Method 3: Try to access pages the user has roles on (alternative approach)
+//         try {
+//             const rolesResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=accounts{id,name,access_token,roles}&access_token=${access_token}`);
+            
+//             if (rolesResponse.data.accounts && rolesResponse.data.accounts.data) {
+//                 for (const page of rolesResponse.data.accounts.data) {
+//                     await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
+//                 }
+//             }
+//         } catch (rolesError) {
+//             console.log('Roles-based access failed:', rolesError.response?.data?.error?.message);
+//         }
+        
+//         // Remove duplicates based on page_id
+//         const uniquePages = pagesWithInstagram.filter((page, index, self) => 
+//             index === self.findIndex(p => p.page_id === page.page_id)
+//         );
+        
+//         console.log(`📊 Total found: ${uniquePages.length} unique pages with Instagram accounts`);
+//         return uniquePages;
         
 //     } catch (error) {
 //         console.error('Error getting pages:', error.response?.data || error.message);
-        
-//         // If pages_show_list fails, provide helpful error message
-//         if (error.response?.data?.error?.code === 10) {
-//             console.log('pages_show_list permission may not be granted');
-//         }
-        
 //         return [];
 //     }
 // }
 
-
+// UPDATED: Works with both Business AND Creator accounts
 async function getInstagramBusinessAccountWithPages(access_token) {
     try {
-        console.log('=== Getting Facebook Pages with Instagram Accounts (COMPREHENSIVE) ===');
+        console.log('=== Getting Instagram Accounts (Business + Creator) ===');
         
         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
         console.log('User info:', meResponse.data);
         
-        const pagesWithInstagram = [];
+        const accountsFound = [];
         
-        // Method 1: Get pages directly managed by user (not in Business Manager)
+        // METHOD 1: Get Instagram Business accounts via Facebook Pages (Traditional Business)
+        console.log('\n📍 METHOD 1: Checking Facebook Pages with Instagram Business...');
         try {
-            const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
-            console.log('Direct pages API response:', pagesResponse.data);
+            const pagesResponse = await axios.get(
+                `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,username,name,profile_picture_url}&access_token=${access_token}`
+            );
+            
+            console.log('Pages found:', pagesResponse.data.data?.length || 0);
             
             if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
                 for (const page of pagesResponse.data.data) {
-                    await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
-                }
-            }
-        } catch (error) {
-            console.log('Direct pages access failed:', error.response?.data?.error?.message);
-        }
-        
-        // Method 2: Get pages through Business Manager
-        try {
-            const businessesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${access_token}`);
-            console.log('Businesses response:', businessesResponse.data);
-            
-            if (businessesResponse.data.data && businessesResponse.data.data.length > 0) {
-                for (const business of businessesResponse.data.data) {
-                    try {
-                        // Get pages owned by this business
-                        const businessPagesResponse = await axios.get(`https://graph.facebook.com/v21.0/${business.id}/owned_pages?fields=id,name,access_token&access_token=${access_token}`);
-                        
-                        if (businessPagesResponse.data.data) {
-                            for (const page of businessPagesResponse.data.data) {
-                                await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
-                            }
-                        }
-                    } catch (businessPageError) {
-                        console.log(`Error getting pages for business ${business.name}:`, businessPageError.response?.data?.error?.message);
+                    if (page.instagram_business_account) {
+                        const ig = page.instagram_business_account;
+                        accountsFound.push({
+                            page_id: page.id,
+                            page_name: page.name,
+                            instagram_id: ig.id,
+                            instagram_username: ig.username,
+                            instagram_name: ig.name || ig.username,
+                            profile_picture: ig.profile_picture_url || null,
+                            account_type: 'business',
+                            source: 'facebook_page'
+                        });
+                        console.log(`✅ Found Business: @${ig.username} (via page ${page.name})`);
                     }
                 }
             }
-        } catch (businessError) {
-            console.log('Business Manager access failed:', businessError.response?.data?.error?.message);
+        } catch (error) {
+            console.log('METHOD 1 failed:', error.response?.data?.error?.message || error.message);
         }
         
-        // Method 3: Try to access pages the user has roles on (alternative approach)
+        // METHOD 2: Get Instagram accounts directly via /me/accounts (includes Creator accounts)
+        console.log('\n📍 METHOD 2: Checking direct Instagram accounts (Creator)...');
         try {
-            const rolesResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=accounts{id,name,access_token,roles}&access_token=${access_token}`);
+            // This endpoint works for Creator accounts!
+            const igAccountsResponse = await axios.get(
+                `https://graph.facebook.com/v21.0/me/accounts?fields=instagram_accounts{id,username,name,profile_picture_url}&access_token=${access_token}`
+            );
             
-            if (rolesResponse.data.accounts && rolesResponse.data.accounts.data) {
-                for (const page of rolesResponse.data.accounts.data) {
-                    await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
+            console.log('Instagram accounts response:', igAccountsResponse.data);
+            
+            if (igAccountsResponse.data.data && igAccountsResponse.data.data.length > 0) {
+                for (const page of igAccountsResponse.data.data) {
+                    if (page.instagram_accounts && page.instagram_accounts.data) {
+                        for (const ig of page.instagram_accounts.data) {
+                            // Check if not already added
+                            const exists = accountsFound.some(acc => acc.instagram_id === ig.id);
+                            if (!exists) {
+                                accountsFound.push({
+                                    page_id: page.id || null,
+                                    page_name: page.name || ig.username,
+                                    instagram_id: ig.id,
+                                    instagram_username: ig.username,
+                                    instagram_name: ig.name || ig.username,
+                                    profile_picture: ig.profile_picture_url || null,
+                                    account_type: 'creator',
+                                    source: 'instagram_direct'
+                                });
+                                console.log(`✅ Found Creator: @${ig.username}`);
+                            }
+                        }
+                    }
                 }
             }
-        } catch (rolesError) {
-            console.log('Roles-based access failed:', rolesError.response?.data?.error?.message);
+        } catch (error) {
+            console.log('METHOD 2 failed:', error.response?.data?.error?.message || error.message);
         }
         
-        // Remove duplicates based on page_id
-        const uniquePages = pagesWithInstagram.filter((page, index, self) => 
-            index === self.findIndex(p => p.page_id === page.page_id)
+        // METHOD 3: Try the alternative endpoint structure
+        console.log('\n📍 METHOD 3: Trying alternative Instagram discovery...');
+        try {
+            const altResponse = await axios.get(
+                `https://graph.facebook.com/v21.0/me?fields=accounts{instagram_accounts{id,username,name,profile_picture_url}}&access_token=${access_token}`
+            );
+            
+            if (altResponse.data.accounts && altResponse.data.accounts.data) {
+                for (const account of altResponse.data.accounts.data) {
+                    if (account.instagram_accounts && account.instagram_accounts.data) {
+                        for (const ig of account.instagram_accounts.data) {
+                            const exists = accountsFound.some(acc => acc.instagram_id === ig.id);
+                            if (!exists) {
+                                accountsFound.push({
+                                    page_id: account.id || null,
+                                    page_name: account.name || ig.username,
+                                    instagram_id: ig.id,
+                                    instagram_username: ig.username,
+                                    instagram_name: ig.name || ig.username,
+                                    profile_picture: ig.profile_picture_url || null,
+                                    account_type: 'creator',
+                                    source: 'nested_query'
+                                });
+                                console.log(`✅ Found via nested query: @${ig.username}`);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('METHOD 3 failed:', error.response?.data?.error?.message || error.message);
+        }
+        
+        // Remove duplicates based on instagram_id
+        const uniqueAccounts = accountsFound.filter(
+            (account, index, self) => index === self.findIndex(a => a.instagram_id === account.instagram_id)
         );
         
-        console.log(`📊 Total found: ${uniquePages.length} unique pages with Instagram accounts`);
-        return uniquePages;
+        console.log(`\n✅ Total unique Instagram accounts found: ${uniqueAccounts.length}`);
+        uniqueAccounts.forEach(acc => {
+            console.log(`   - @${acc.instagram_username} (${acc.account_type})`);
+        });
+        
+        return uniqueAccounts;
         
     } catch (error) {
-        console.error('Error getting pages:', error.response?.data || error.message);
+        console.error('Fatal error getting Instagram accounts:', error.response?.data || error.message);
         return [];
     }
 }
 
+// Helper function (no longer needed but kept for backward compatibility)
+async function checkPageForInstagram(page, pagesArray, accessToken) {
+    try {
+        console.log(`Checking page: ${page.name} (${page.id})`);
+        
+        const igResponse = await axios.get(
+            `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account{id,username,name,profile_picture_url}&access_token=${accessToken}`
+        );
+        
+        if (igResponse.data.instagram_business_account) {
+            const ig = igResponse.data.instagram_business_account;
+            
+            pagesArray.push({
+                page_id: page.id,
+                page_name: page.name,
+                instagram_id: ig.id,
+                instagram_username: ig.username,
+                instagram_name: ig.name || ig.username,
+                profile_picture: ig.profile_picture_url || null,
+                account_type: 'business',
+                page_access_token: accessToken
+            });
+            
+            console.log(`✅ Added: ${page.name} (@${ig.username})`);
+        } else {
+            console.log(`No Instagram account linked to page: ${page.name}`);
+        }
+    } catch (pageError) {
+        console.log(`❌ Error checking page ${page.name}:`, pageError.response?.data?.error?.message);
+    }
+}
 // Helper function to check if a page has Instagram and add to array
 async function checkPageForInstagram(page, pagesArray, accessToken) {
     try {
@@ -2078,4 +2173,5 @@ router.post('/complete-instagram-profile', async (req, res) => {
         res.redirect('/complete-instagram-profile');
     }
 });
+
 module.exports = router;
