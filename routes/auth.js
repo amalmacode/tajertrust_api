@@ -1626,6 +1626,11 @@ async function getInstagramBusinessAccountWithPages(access_token) {
         
         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
         console.log('User info:', meResponse.data);
+        // Debug: Check what permissions user actually granted
+        const permCheck = await axios.get(
+            `https://graph.facebook.com/v21.0/me/permissions?access_token=${access_token}`
+        );
+        console.log('🔍 Granted permissions:', permCheck.data.data.map(p => p.permission));
         
         const accountsFound = [];
         
