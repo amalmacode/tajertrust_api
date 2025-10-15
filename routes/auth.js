@@ -237,7 +237,7 @@ router.get('/auth/instagram/verify', async (req, res) => {
     req.session.verifyCode = code;
     
     // Redirect to Facebook OAuth for Instagram verification
-    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.APP_ID}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&scope=business_management,pages_show_list,instagram_business_basic&response_type=code&state=verify_instagram_${code}`;
+    const authUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.APP_ID}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&scope=business_management,pages_show_list,instagram_business_basic&response_type=code&state=verify_instagram_${code}`;
     
     res.redirect(authUrl);
 });
@@ -254,7 +254,7 @@ router.get('/auth/instagram/callback', async (req, res) => {
     
     try {
         // Exchange code for access token
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&code=${code}`);
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&code=${code}`);
         
         const access_token = tokenResponse.data.access_token;
         
@@ -1628,7 +1628,7 @@ async function getInstagramBusinessAccountWithPages(access_token) {
         console.log('User info:', meResponse.data);
         // Debug: Check what permissions user actually granted
         const permCheck = await axios.get(
-            `https://graph.facebook.com/v21.0/me/permissions?access_token=${access_token}`
+            `https://graph.facebook.com/v23.0/me/permissions?access_token=${access_token}`
         );
         console.log('🔍 Granted permissions:', permCheck.data.data.map(p => p.permission));
         
@@ -1670,7 +1670,7 @@ async function getInstagramBusinessAccountWithPages(access_token) {
         try {
             // This endpoint works for Creator accounts!
             const igAccountsResponse = await axios.get(
-                `https://graph.facebook.com/v21.0/me/accounts?fields=instagram_accounts{id,username,name,profile_picture_url}&access_token=${access_token}`
+                `https://graph.facebook.com/v23.0/me/accounts?fields=instagram_accounts{id,username,name,profile_picture_url}&access_token=${access_token}`
             );
             
             console.log('Instagram accounts response:', igAccountsResponse.data);
@@ -1706,7 +1706,7 @@ async function getInstagramBusinessAccountWithPages(access_token) {
         console.log('\n📍 METHOD 3: Trying alternative Instagram discovery...');
         try {
             const altResponse = await axios.get(
-                `https://graph.facebook.com/v21.0/me?fields=accounts{instagram_accounts{id,username,name,profile_picture_url}}&access_token=${access_token}`
+                `https://graph.facebook.com/v23.0/me?fields=accounts{instagram_accounts{id,username,name,profile_picture_url}}&access_token=${access_token}`
             );
             
             if (altResponse.data.accounts && altResponse.data.accounts.data) {
@@ -1759,7 +1759,7 @@ async function checkPageForInstagram(page, pagesArray, accessToken) {
         console.log(`Checking page: ${page.name} (${page.id})`);
         
         const igResponse = await axios.get(
-            `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account{id,username,name,profile_picture_url}&access_token=${accessToken}`
+            `https://graph.facebook.com/v23.0/${page.id}?fields=instagram_business_account{id,username,name,profile_picture_url}&access_token=${accessToken}`
         );
         
         if (igResponse.data.instagram_business_account) {
@@ -1790,14 +1790,14 @@ async function checkPageForInstagram(page, pagesArray, accessToken) {
         console.log(`Checking page: ${page.name} (${page.id})`);
         
         // Check for Instagram Business account
-        const igResponse = await axios.get(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`);
+        const igResponse = await axios.get(`https://graph.facebook.com/v23.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`);
         
         if (igResponse.data.instagram_business_account) {
             const igAccountId = igResponse.data.instagram_business_account.id;
             console.log(`Found Instagram account: ${igAccountId}`);
             
             // Get Instagram details
-            const igDetails = await axios.get(`https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username&access_token=${accessToken}`);
+            const igDetails = await axios.get(`https://graph.facebook.com/v23.0/${igAccountId}?fields=id,username&access_token=${accessToken}`);
             
             pagesArray.push({
                 page_id: page.id,
@@ -1829,7 +1829,7 @@ router.get('/auth/instagram/login-callback', async (req, res) => {
             ? 'https://tajertrust.com/auth/instagram/login-callback'
             : 'http://localhost:3000/auth/instagram/login-callback';
         
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         const access_token = tokenResponse.data.access_token;
         
         console.log('Getting Instagram accounts for login...');
@@ -1902,7 +1902,7 @@ router.get('/auth/instagram/register-callback', async (req, res) => {
             ? 'https://tajertrust.com/auth/instagram/register-callback'
             : 'http://localhost:3000/auth/instagram/register-callback';
         
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        const tokenResponse = await axios.get(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         const access_token = tokenResponse.data.access_token;
         
         // Get all pages with Instagram accounts
