@@ -1619,136 +1619,220 @@ router.get('/',(req, res) => {
 //     }
 // }
 
-// UPDATED: Works with both Business AND Creator accounts
+// FIXED: Now includes Business Portfolio access
 async function getInstagramBusinessAccountWithPages(access_token) {
     try {
-        console.log('=== Getting Instagram Accounts (Business + Creator) ===');
+        console.log('=== Getting Instagram Accounts (Including Business Portfolio) ===');
         
         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
         console.log('User info:', meResponse.data);
-        // Debug: Check what permissions user actually granted
-        const permCheck = await axios.get(
-            `https://graph.facebook.com/v23.0/me/permissions?access_token=${access_token}`
-        );
-        console.log('🔍 Granted permissions:', permCheck.data.data.map(p => p.permission));
         
         const accountsFound = [];
         
-        // METHOD 1: Get Instagram Business accounts via Facebook Pages (Traditional Business)
-        console.log('\n📍 METHOD 1: Checking Facebook Pages with Instagram Business...');
+        // METHOD 1: Direct pages (traditional)
+        console.log('\n📍 METHOD 1: Direct Facebook Pages...');
         try {
             const pagesResponse = await axios.get(
-                `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,username,name,profile_picture_url}&access_token=${access_token}`
+                `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,username,name,profile_picture_url}&access_token=${access_token}`
             );
             
             console.log('Pages found:', pagesResponse.data.data?.length || 0);
             
             if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
                 for (const page of pagesResponse.data.data) {
+                    console.log(`  📄 Page: ${page.name} (${page.id})`);
+                    
                     if (page.instagram_business_account) {
                         const ig = page.instagram_business_account;
                         accountsFound.push({
                             page_id: page.id,
                             page_name: page.name,
+                            page_access_token: page.access_token || access_token,
                             instagram_id: ig.id,
                             instagram_username: ig.username,
                             instagram_name: ig.name || ig.username,
                             profile_picture: ig.profile_picture_url || null,
-                            account_type: 'business',
-                            source: 'facebook_page'
+                            account_type: 'business'
                         });
-                        console.log(`✅ Found Business: @${ig.username} (via page ${page.name})`);
+                        console.log(`    ✅ Instagram Business: @${ig.username}`);
+                    } else {
+                        console.log(`    ⚠️ No Instagram linked to this page`);
                     }
                 }
             }
         } catch (error) {
-            console.log('METHOD 1 failed:', error.response?.data?.error?.message || error.message);
+            console.log('METHOD 1 error:', error.response?.data?.error?.message || error.message);
         }
         
-        // METHOD 2: Get Instagram accounts directly via /me/accounts (includes Creator accounts)
-        console.log('\n📍 METHOD 2: Checking direct Instagram accounts (Creator)...');
+        // METHOD 2: Business Portfolio Pages (THIS IS THE KEY!)
+        console.log('\n📍 METHOD 2: Business Portfolio Pages...');
         try {
-            // This endpoint works for Creator accounts!
-            const igAccountsResponse = await axios.get(
-                `https://graph.facebook.com/v23.0/me/accounts?fields=instagram_accounts{id,username,name,profile_picture_url}&access_token=${access_token}`
+            // Get all business portfolios the user has access to
+            const businessesResponse = await axios.get(
+                `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${access_token}`
             );
             
-            console.log('Instagram accounts response:', igAccountsResponse.data);
+            console.log('Business Portfolios found:', businessesResponse.data.data?.length || 0);
             
-            if (igAccountsResponse.data.data && igAccountsResponse.data.data.length > 0) {
-                for (const page of igAccountsResponse.data.data) {
-                    if (page.instagram_accounts && page.instagram_accounts.data) {
-                        for (const ig of page.instagram_accounts.data) {
-                            // Check if not already added
-                            const exists = accountsFound.some(acc => acc.instagram_id === ig.id);
-                            if (!exists) {
-                                accountsFound.push({
-                                    page_id: page.id || null,
-                                    page_name: page.name || ig.username,
-                                    instagram_id: ig.id,
-                                    instagram_username: ig.username,
-                                    instagram_name: ig.name || ig.username,
-                                    profile_picture: ig.profile_picture_url || null,
-                                    account_type: 'creator',
-                                    source: 'instagram_direct'
-                                });
-                                console.log(`✅ Found Creator: @${ig.username}`);
+            if (businessesResponse.data.data && businessesResponse.data.data.length > 0) {
+                for (const business of businessesResponse.data.data) {
+                    console.log(`\n  💼 Business Portfolio: ${business.name} (${business.id})`);
+                    
+                    try {
+                        // Get pages owned by this business portfolio
+                        const businessPagesResponse = await axios.get(
+                            `https://graph.facebook.com/v21.0/${business.id}/owned_pages?fields=id,name,access_token,instagram_business_account{id,username,name,profile_picture_url}&access_token=${access_token}`
+                        );
+                        
+                        console.log(`    Pages in portfolio: ${businessPagesResponse.data.data?.length || 0}`);
+                        
+                        if (businessPagesResponse.data.data && businessPagesResponse.data.data.length > 0) {
+                            for (const page of businessPagesResponse.data.data) {
+                                console.log(`      📄 Page: ${page.name} (${page.id})`);
+                                
+                                if (page.instagram_business_account) {
+                                    const ig = page.instagram_business_account;
+                                    const exists = accountsFound.some(a => a.instagram_id === ig.id);
+                                    
+                                    if (!exists) {
+                                        accountsFound.push({
+                                            page_id: page.id,
+                                            page_name: page.name,
+                                            page_access_token: page.access_token || access_token,
+                                            instagram_id: ig.id,
+                                            instagram_username: ig.username,
+                                            instagram_name: ig.name || ig.username,
+                                            profile_picture: ig.profile_picture_url || null,
+                                            account_type: 'business',
+                                            business_portfolio_id: business.id,
+                                            business_portfolio_name: business.name
+                                        });
+                                        console.log(`        ✅ Instagram: @${ig.username}`);
+                                    }
+                                } else {
+                                    console.log(`        ⚠️ No Instagram linked`);
+                                }
                             }
                         }
+                        
+                        // Also check for Instagram accounts directly on the business
+                        try {
+                            const businessIgResponse = await axios.get(
+                                `https://graph.facebook.com/v21.0/${business.id}/instagram_accounts?fields=id,username,name,profile_picture_url&access_token=${access_token}`
+                            );
+                            
+                            if (businessIgResponse.data.data && businessIgResponse.data.data.length > 0) {
+                                console.log(`    Instagram accounts directly on portfolio: ${businessIgResponse.data.data.length}`);
+                                
+                                for (const ig of businessIgResponse.data.data) {
+                                    const exists = accountsFound.some(a => a.instagram_id === ig.id);
+                                    
+                                    if (!exists) {
+                                        accountsFound.push({
+                                            page_id: null,
+                                            page_name: ig.username,
+                                            page_access_token: access_token,
+                                            instagram_id: ig.id,
+                                            instagram_username: ig.username,
+                                            instagram_name: ig.name || ig.username,
+                                            profile_picture: ig.profile_picture_url || null,
+                                            account_type: 'creator',
+                                            business_portfolio_id: business.id,
+                                            business_portfolio_name: business.name
+                                        });
+                                        console.log(`      ✅ Instagram Creator: @${ig.username}`);
+                                    }
+                                }
+                            }
+                        } catch (igError) {
+                            console.log(`    No direct Instagram accounts on portfolio`);
+                        }
+                        
+                    } catch (businessPageError) {
+                        console.log(`    Error accessing portfolio pages:`, businessPageError.response?.data?.error?.message);
                     }
                 }
+            } else {
+                console.log('  ⚠️ No Business Portfolios found for this user');
             }
-        } catch (error) {
-            console.log('METHOD 2 failed:', error.response?.data?.error?.message || error.message);
+        } catch (businessError) {
+            console.log('METHOD 2 error:', businessError.response?.data?.error?.message || businessError.message);
         }
         
-        // METHOD 3: Try the alternative endpoint structure
-        console.log('\n📍 METHOD 3: Trying alternative Instagram discovery...');
+        // METHOD 3: Client pages (pages user has roles on via business)
+        console.log('\n📍 METHOD 3: Client Pages (via Business)...');
         try {
-            const altResponse = await axios.get(
-                `https://graph.facebook.com/v23.0/me?fields=accounts{instagram_accounts{id,username,name,profile_picture_url}}&access_token=${access_token}`
+            const businessesResponse = await axios.get(
+                `https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${access_token}`
             );
             
-            if (altResponse.data.accounts && altResponse.data.accounts.data) {
-                for (const account of altResponse.data.accounts.data) {
-                    if (account.instagram_accounts && account.instagram_accounts.data) {
-                        for (const ig of account.instagram_accounts.data) {
-                            const exists = accountsFound.some(acc => acc.instagram_id === ig.id);
-                            if (!exists) {
-                                accountsFound.push({
-                                    page_id: account.id || null,
-                                    page_name: account.name || ig.username,
-                                    instagram_id: ig.id,
-                                    instagram_username: ig.username,
-                                    instagram_name: ig.name || ig.username,
-                                    profile_picture: ig.profile_picture_url || null,
-                                    account_type: 'creator',
-                                    source: 'nested_query'
-                                });
-                                console.log(`✅ Found via nested query: @${ig.username}`);
+            if (businessesResponse.data.data && businessesResponse.data.data.length > 0) {
+                for (const business of businessesResponse.data.data) {
+                    try {
+                        // Check client_pages instead of owned_pages
+                        const clientPagesResponse = await axios.get(
+                            `https://graph.facebook.com/v21.0/${business.id}/client_pages?fields=id,name,instagram_business_account{id,username,name,profile_picture_url}&access_token=${access_token}`
+                        );
+                        
+                        if (clientPagesResponse.data.data && clientPagesResponse.data.data.length > 0) {
+                            console.log(`  Client pages in ${business.name}: ${clientPagesResponse.data.data.length}`);
+                            
+                            for (const page of clientPagesResponse.data.data) {
+                                if (page.instagram_business_account) {
+                                    const ig = page.instagram_business_account;
+                                    const exists = accountsFound.some(a => a.instagram_id === ig.id);
+                                    
+                                    if (!exists) {
+                                        accountsFound.push({
+                                            page_id: page.id,
+                                            page_name: page.name,
+                                            page_access_token: access_token,
+                                            instagram_id: ig.id,
+                                            instagram_username: ig.username,
+                                            instagram_name: ig.name || ig.username,
+                                            profile_picture: ig.profile_picture_url || null,
+                                            account_type: 'business',
+                                            business_portfolio_id: business.id,
+                                            business_portfolio_name: business.name
+                                        });
+                                        console.log(`    ✅ Client page Instagram: @${ig.username}`);
+                                    }
+                                }
                             }
                         }
+                    } catch (clientError) {
+                        // Client pages might not exist, that's okay
                     }
                 }
             }
         } catch (error) {
-            console.log('METHOD 3 failed:', error.response?.data?.error?.message || error.message);
+            console.log('METHOD 3 error:', error.response?.data?.error?.message || error.message);
         }
         
-        // Remove duplicates based on instagram_id
+        // Remove duplicates
         const uniqueAccounts = accountsFound.filter(
             (account, index, self) => index === self.findIndex(a => a.instagram_id === account.instagram_id)
         );
         
-        console.log(`\n✅ Total unique Instagram accounts found: ${uniqueAccounts.length}`);
-        uniqueAccounts.forEach(acc => {
-            console.log(`   - @${acc.instagram_username} (${acc.account_type})`);
-        });
+        console.log(`\n✅ TOTAL FOUND: ${uniqueAccounts.length} unique Instagram accounts`);
+        
+        if (uniqueAccounts.length > 0) {
+            uniqueAccounts.forEach(acc => {
+                const portfolio = acc.business_portfolio_name ? ` (Portfolio: ${acc.business_portfolio_name})` : '';
+                console.log(`   - @${acc.instagram_username} - ${acc.page_name}${portfolio}`);
+            });
+        } else {
+            console.error('\n❌ NO ACCOUNTS FOUND');
+            console.error('Possible issues:');
+            console.error('  1. User needs business_management permission');
+            console.error('  2. Instagram not properly linked to Facebook page');
+            console.error('  3. User role insufficient on Business Portfolio');
+        }
         
         return uniqueAccounts;
         
     } catch (error) {
-        console.error('Fatal error getting Instagram accounts:', error.response?.data || error.message);
+        console.error('Fatal error:', error.response?.data || error.message);
         return [];
     }
 }
