@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../db');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+// const nodemailer = require('nodemailer');
 const { ensureAuthenticated,upload } = require('../middlewares/auth');
 const { ensureAdmin } = require('../middlewares/auth');
 const passport = require('passport');
@@ -31,16 +31,22 @@ const storage = multer.diskStorage({
 const uploadCsv = multer({ storage: storage });
 
  // Send confirmation email
- const transporter = nodemailer.createTransport({
-  service: 'gmail', // or your provider
-  auth: {
-    user: 'amaldotrading@gmail.com',
-    pass: 'yszy wsfr dhyb sbaa'  // Use app password for Gmail
-  },
-  tls: {
-    rejectUnauthorized: false // Accept self-signed certificates
-  }
-});
+//  const transporter = nodemailer.createTransport({
+//   service: 'gmail', // or your provider
+//   auth: {
+//     user: 'amaldotrading@gmail.com',
+//     pass: 'yszy wsfr dhyb sbaa'  // Use app password for Gmail
+//   },
+//   tls: {
+//     rejectUnauthorized: false // Accept self-signed certificates
+//   }
+// });
+
+// Add SendGrid instead:
+const sgMail = require('@sendgrid/mail');
+
+// Configure SendGrid with your API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Facebook App Configuration
 const FACEBOOK_CONFIG = {
@@ -2190,6 +2196,79 @@ router.get('/complete-instagram-profile', (req, res) => {
 });
 
 // Complete Instagram profile route (POST)
+// router.post('/complete-instagram-profile', async (req, res) => {
+//     const { email, website } = req.body;
+//     const pendingRegistration = req.session.pendingRegistration;
+    
+//     if (!pendingRegistration || !pendingRegistration.userId) {
+//         req.flash('error', 'Session d\'inscription expirée. Veuillez recommencer.');
+//         return res.redirect('/register');
+//     }
+    
+//     try {
+//         // Validate email
+//         if (!email || !email.includes('@')) {
+//             req.flash('error', 'Veuillez fournir un email valide.');
+//             return res.redirect('/complete-instagram-profile');
+//         }
+        
+//         // Check if email is already used
+//         const existingEmail = await pool.query('SELECT id FROM sellers WHERE email = $1 AND id != $2', [email, pendingRegistration.userId]);
+//         if (existingEmail.rows.length > 0) {
+//             req.flash('error', 'Cet email est déjà utilisé.');
+//             return res.redirect('/complete-instagram-profile');
+//         }
+        
+//         // Update user profile with real email
+//         await pool.query(`
+//             UPDATE sellers 
+//             SET email = $1, website = $2
+//             WHERE id = $3
+//         `, [email, website || '', pendingRegistration.userId]);
+        
+//         // Send email verification
+//         const verifyLink = `${process.env.VERIFYLINK}/verify?token=${pendingRegistration.verificationToken}`;
+        
+//         await transporter.sendMail({
+//             to: email,
+//             subject: "Confirmez votre email - TajerTrust",
+//             html: `
+//                 <p>Bienvenue sur TajerTrust!</p>
+//                 <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
+//                 <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
+//                 <a href="${verifyLink}">Confirmer mon email</a>
+//                 <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
+//             `
+//         });
+        
+//         // Send notification to admin
+//         await transporter.sendMail({
+//             to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
+//             subject: "Nouveau compte Instagram à valider - TajerTrust",
+//             html: `
+//                 <p>Un nouveau compte Instagram vient de s'inscrire :</p>
+//                 <ul>
+//                     <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
+//                     <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
+//                     <li><strong>Email:</strong> ${email}</li>
+//                 </ul>
+//                 <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
+//             `
+//         });
+        
+//         // Clear session data
+//         delete req.session.pendingRegistration;
+        
+//         req.flash('success', `Inscription terminée! Un email de confirmation a été envoyé à ${email}. Votre compte sera validé par notre équipe sous 24-48h.`);
+//         res.redirect('/login');
+        
+//     } catch (error) {
+//         console.error('Complete profile error:', error);
+//         req.flash('error', 'Erreur lors de la mise à jour du profil.');
+//         res.redirect('/complete-instagram-profile');
+//     }
+// });
+
 router.post('/complete-instagram-profile', async (req, res) => {
     const { email, website } = req.body;
     const pendingRegistration = req.session.pendingRegistration;
@@ -2207,7 +2286,11 @@ router.post('/complete-instagram-profile', async (req, res) => {
         }
         
         // Check if email is already used
-        const existingEmail = await pool.query('SELECT id FROM sellers WHERE email = $1 AND id != $2', [email, pendingRegistration.userId]);
+        const existingEmail = await pool.query(
+            'SELECT id FROM sellers WHERE email = $1 AND id != $2', 
+            [email, pendingRegistration.userId]
+        );
+        
         if (existingEmail.rows.length > 0) {
             req.flash('error', 'Cet email est déjà utilisé.');
             return res.redirect('/complete-instagram-profile');
@@ -2220,39 +2303,173 @@ router.post('/complete-instagram-profile', async (req, res) => {
             WHERE id = $3
         `, [email, website || '', pendingRegistration.userId]);
         
-        // Send email verification
+        // Prepare verification link
         const verifyLink = `${process.env.VERIFYLINK}/verify?token=${pendingRegistration.verificationToken}`;
         
-        await transporter.sendMail({
+        // ========================================
+        // SEND VERIFICATION EMAIL WITH SENDGRID
+        // ========================================
+        const verificationEmailMsg = {
             to: email,
+            from: {
+                email: process.env.SENDGRID_FROM_EMAIL,
+                name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
+            },
             subject: "Confirmez votre email - TajerTrust",
             html: `
-                <p>Bienvenue sur TajerTrust!</p>
-                <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
-                <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
-                <a href="${verifyLink}">Confirmer mon email</a>
-                <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
-            `
-        });
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            line-height: 1.6; 
+                            color: #333; 
+                            max-width: 600px;
+                            margin: 0 auto;
+                            padding: 20px;
+                        }
+                        .button { 
+                            display: inline-block; 
+                            padding: 12px 30px; 
+                            background-color: #4F46E5; 
+                            color: white !important; 
+                            text-decoration: none; 
+                            border-radius: 5px; 
+                            margin: 20px 0;
+                        }
+                        .footer { 
+                            margin-top: 30px; 
+                            padding-top: 20px;
+                            border-top: 1px solid #e5e7eb;
+                            font-size: 12px; 
+                            color: #6b7280; 
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>Bienvenue sur TajerTrust! 👋</h2>
+                    
+                    <p>Votre compte Instagram <strong>@${pendingRegistration.instagram_username}</strong> a été connecté avec succès.</p>
+                    
+                    <p>Veuillez confirmer votre email en cliquant sur le bouton ci-dessous :</p>
+                    
+                    <a href="${verifyLink}" class="button">Confirmer mon email</a>
+                    
+                    <p>Ou copiez ce lien dans votre navigateur :</p>
+                    <p style="word-break: break-all; color: #4F46E5;">${verifyLink}</p>
+                    
+                    <p><strong>Important :</strong> Votre compte sera également validé par notre équipe avant activation complète (24-48h).</p>
+                    
+                    <div class="footer">
+                        <p>Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.</p>
+                        <p>© 2025 TajerTrust. Tous droits réservés.</p>
+                    </div>
+                </body>
+                </html>
+            `,
+            text: `Bienvenue sur TajerTrust!
+
+Votre compte Instagram @${pendingRegistration.instagram_username} a été connecté avec succès.
+
+Confirmez votre email en cliquant sur ce lien : ${verifyLink}
+
+Important: Votre compte sera validé par notre équipe sous 24-48h.
+
+Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.`
+        };
+        
+        // ========================================
+        // SEND ADMIN NOTIFICATION WITH SENDGRID
+        // ========================================
+        const adminNotificationMsg = {
+            to: process.env.ADMIN_EMAIL,
+            from: {
+                email: process.env.SENDGRID_FROM_EMAIL,
+                name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
+            },
+            subject: "🔔 Nouveau compte Instagram à valider - TajerTrust",
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            line-height: 1.6; 
+                            color: #333; 
+                            max-width: 600px;
+                            margin: 0 auto;
+                            padding: 20px;
+                        }
+                        .info-box { 
+                            background-color: #f3f4f6; 
+                            padding: 15px; 
+                            border-radius: 5px; 
+                            margin: 15px 0;
+                        }
+                        .label { 
+                            font-weight: bold; 
+                            color: #4F46E5; 
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>🔔 Nouveau compte Instagram</h2>
+                    
+                    <p>Un nouveau compte Instagram vient de s'inscrire :</p>
+                    
+                    <div class="info-box">
+                        <p><span class="label">Business:</span> ${pendingRegistration.business_name}</p>
+                        <p><span class="label">Instagram:</span> @${pendingRegistration.instagram_username}</p>
+                        <p><span class="label">Email:</span> ${email}</p>
+                        <p><span class="label">Website:</span> ${website || 'Non fourni'}</p>
+                        <p><span class="label">Date:</span> ${new Date().toLocaleString('fr-FR')}</p>
+                    </div>
+                    
+                    <p>⚡ <strong>Action requise :</strong> Veuillez valider ce compte dans le tableau de bord admin.</p>
+                </body>
+                </html>
+            `,
+            text: `Nouveau compte Instagram à valider
+
+Business: ${pendingRegistration.business_name}
+Instagram: @${pendingRegistration.instagram_username}
+Email: ${email}
+Website: ${website || 'Non fourni'}
+Date: ${new Date().toLocaleString('fr-FR')}
+
+Veuillez valider ce compte dans le tableau de bord admin.`
+        };
+        
+        // ========================================
+        // SEND EMAILS ASYNCHRONOUSLY (NON-BLOCKING)
+        // ========================================
+        
+        // Send verification email to user
+        sgMail.send(verificationEmailMsg)
+            .then(() => {
+                console.log(`✅ Verification email sent to ${email}`);
+            })
+            .catch((error) => {
+                console.error('❌ Failed to send verification email:', error.response?.body || error.message);
+                // Don't block registration if email fails
+            });
         
         // Send notification to admin
-        await transporter.sendMail({
-            to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
-            subject: "Nouveau compte Instagram à valider - TajerTrust",
-            html: `
-                <p>Un nouveau compte Instagram vient de s'inscrire :</p>
-                <ul>
-                    <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
-                    <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
-                    <li><strong>Email:</strong> ${email}</li>
-                </ul>
-                <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
-            `
-        });
+        sgMail.send(adminNotificationMsg)
+            .then(() => {
+                console.log('✅ Admin notification sent');
+            })
+            .catch((error) => {
+                console.error('❌ Failed to send admin notification:', error.response?.body || error.message);
+                // Don't block registration if email fails
+            });
         
         // Clear session data
         delete req.session.pendingRegistration;
         
+        // Respond immediately (don't wait for emails)
         req.flash('success', `Inscription terminée! Un email de confirmation a été envoyé à ${email}. Votre compte sera validé par notre équipe sous 24-48h.`);
         res.redirect('/login');
         
