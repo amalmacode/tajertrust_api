@@ -339,25 +339,25 @@ router.post('/register', async (req, res) => {
             `,
             text: `Bienvenue sur TajerTrust!
 
-Bonjour ${business_name},
+          Bonjour ${business_name},
 
-Merci de vous être inscrit sur TajerTrust.
+          Merci de vous être inscrit sur TajerTrust.
 
-Pour activer votre compte, confirmez votre email en cliquant sur ce lien :
-${verifyLink}
+          Pour activer votre compte, confirmez votre email en cliquant sur ce lien :
+          ${verifyLink}
 
-Informations de votre compte :
-• Business : ${business_name}
-• Email : ${email}
-• Lien social : ${social_link}
+          Informations de votre compte :
+          • Business : ${business_name}
+          • Email : ${email}
+          • Lien social : ${social_link}
 
-Important : Ce lien expire dans 24 heures. Votre compte sera validé par notre équipe sous 24-48h.
+          Important : Ce lien expire dans 24 heures. Votre compte sera validé par notre équipe sous 24-48h.
 
-Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.
+          Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.
 
-© 2025 TajerTrust`
-        };
-        
+          © 2025 TajerTrust`
+                  };
+                  
         // Send email asynchronously (non-blocking)
         console.log("📧 Sending confirmation email to:", email);
         
@@ -423,25 +423,25 @@ Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.
             `,
             text: `Nouvelle inscription (Email/Password)
 
-Business: ${business_name}
-Email: ${email}
-Lien social: ${social_link}
-Website: ${website || 'Non fourni'}
-Type: Inscription Email/Password
-Date: ${new Date().toLocaleString('fr-FR')}
+            Business: ${business_name}
+            Email: ${email}
+            Lien social: ${social_link}
+            Website: ${website || 'Non fourni'}
+            Type: Inscription Email/Password
+            Date: ${new Date().toLocaleString('fr-FR')}
 
-En attente de confirmation email par l'utilisateur.`
-        };
+            En attente de confirmation email par l'utilisateur.`
+                    };
         
         // Send admin notification (optional, non-blocking)
-        sgMail.send(adminNotificationMsg)
-            .then(() => {
-                console.log('✅ Admin notification sent');
-            })
-            .catch((error) => {
-                console.error('❌ Failed to send admin notification:', error.response?.body || error.message);
-            });
-        
+          sgMail.send(adminNotificationMsg)
+              .then(() => {
+                  console.log('✅ Admin notification sent');
+              })
+              .catch((error) => {
+                  console.error('❌ Failed to send admin notification:', error.response?.body || error.message);
+              });
+          
         // Respond immediately
         req.flash('success', "Inscription réussie! Veuillez confirmer votre email pour activer votre compte.");
         res.redirect(`/verify-social?code=${verifyCode}`);
@@ -523,19 +523,89 @@ router.get('/auth/instagram/verify', async (req, res) => {
         return res.redirect('/register');
     }
     
+    console.log('🔐 Starting Instagram verification for code:', code);
+    
     // Store the verify_code in session for callback
     req.session.verifyCode = code;
     
-    // Redirect to Facebook OAuth for Instagram verification
-    const authUrl = `https://www.facebook.com/v23.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.APP_ID}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&scope=business_management,pages_show_list,instagram_business_basic&response_type=code&state=verify_instagram_${code}`;
+    // Use correct redirect URI
+    const redirectUri = process.env.NODE_ENV === 'production'
+        ? 'https://tajertrust.com/auth/instagram/callback'
+        : 'http://localhost:3000/auth/instagram/callback';
     
+    // Redirect to Facebook OAuth for Instagram verification
+    const authUrl = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${FACEBOOK_CONFIG.APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=business_management,pages_show_list,instagram_basic&response_type=code&state=verify_instagram_${code}`;
+    
+    console.log('🔗 Redirecting to Facebook OAuth');
     res.redirect(authUrl);
 });
 
 // Step 3: Instagram verification callback
+// router.get('/auth/instagram/callback', async (req, res) => {
+//     const { code, state } = req.query;
+//     const verifyCode = req.session.verifyCode;
+    
+//     if (!state || !state.startsWith('verify_instagram_') || !verifyCode) {
+//         req.flash('error', 'Session de vérification invalide.');
+//         return res.redirect('/register');
+//     }
+    
+//     try {
+//         // Exchange code for access token
+//         const tokenResponse = await axios.get(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&code=${code}`);
+        
+//         const access_token = tokenResponse.data.access_token;
+        
+//         // Get Instagram business account
+//         const instagramAccount = await getInstagramBusinessAccountWithPages(access_token);
+        
+//         if (instagramAccount) {
+//             // Update seller with verified Instagram data
+//             await pool.query(`
+//                 UPDATE sellers 
+//                 SET 
+//                     is_social_verified = true,
+//                     social_verified_at = NOW(),
+//                     instagram_username = $1,
+//                     instagram_account_id = $2,
+//                     instagram_account_type = $3,
+//                     instagram_page_name = $4,
+//                     instagram_followers_count = $5
+//                 WHERE verify_code = $6
+//             `, [
+//                 instagramAccount.username,
+//                 instagramAccount.id,
+//                 instagramAccount.account_type,
+//                 instagramAccount.page_name,
+//                 instagramAccount.followers_count || 0,
+//                 verifyCode
+//             ]);
+            
+//             // Clear session
+//             delete req.session.verifyCode;
+            
+//             req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
+//             res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
+            
+//         } else {
+//             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur connecté à une page Facebook.');
+//             res.redirect(`/verify-social?code=${verifyCode}&error=no_instagram`);
+//         }
+        
+//     } catch (error) {
+//         console.error('Instagram verification error:', error);
+//         req.flash('error', 'Erreur lors de la vérification Instagram. Veuillez réessayer.');
+//         res.redirect(`/verify-social?code=${verifyCode}&error=verification_failed`);
+//     }
+// });
+
 router.get('/auth/instagram/callback', async (req, res) => {
     const { code, state } = req.query;
     const verifyCode = req.session.verifyCode;
+    
+    console.log('📥 Instagram callback received');
+    console.log('State:', state);
+    console.log('Verify code from session:', verifyCode);
     
     if (!state || !state.startsWith('verify_instagram_') || !verifyCode) {
         req.flash('error', 'Session de vérification invalide.');
@@ -543,15 +613,28 @@ router.get('/auth/instagram/callback', async (req, res) => {
     }
     
     try {
+        // Determine redirect URI based on environment
+        const redirectUri = process.env.NODE_ENV === 'production'
+            ? 'https://tajertrust.com/auth/instagram/callback'
+            : 'http://localhost:3000/auth/instagram/callback';
+        
         // Exchange code for access token
-        const tokenResponse = await axios.get(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&code=${code}`);
+        const tokenResponse = await axios.get(
+            `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`
+        );
         
         const access_token = tokenResponse.data.access_token;
+        console.log('✅ Access token received');
         
-        // Get Instagram business account
-        const instagramAccount = await getInstagramBusinessAccount(access_token);
+        // Get Instagram business account (returns array)
+        const instagramAccounts = await getInstagramBusinessAccountWithPages(access_token);
         
-        if (instagramAccount) {
+        if (instagramAccounts && instagramAccounts.length > 0) {
+            // Take the first Instagram account found
+            const instagramAccount = instagramAccounts[0];
+            
+            console.log('✅ Instagram account found:', instagramAccount.instagram_username);
+            
             // Update seller with verified Instagram data
             await pool.query(`
                 UPDATE sellers 
@@ -560,38 +643,35 @@ router.get('/auth/instagram/callback', async (req, res) => {
                     social_verified_at = NOW(),
                     instagram_username = $1,
                     instagram_account_id = $2,
-                    instagram_account_type = $3,
-                    instagram_page_name = $4,
-                    instagram_followers_count = $5
-                WHERE verify_code = $6
+                    instagram_page_name = $3
+                WHERE verify_code = $4
             `, [
-                instagramAccount.username,
-                instagramAccount.id,
-                instagramAccount.account_type,
-                instagramAccount.page_name,
-                instagramAccount.followers_count || 0,
+                instagramAccount.instagram_username,
+                instagramAccount.instagram_id,
+                instagramAccount.page_name || instagramAccount.instagram_username,
                 verifyCode
             ]);
+            
+            console.log('✅ Database updated for verify_code:', verifyCode);
             
             // Clear session
             delete req.session.verifyCode;
             
-            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
+            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
             res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
             
         } else {
+            console.error('❌ No Instagram Business account found');
             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur connecté à une page Facebook.');
             res.redirect(`/verify-social?code=${verifyCode}&error=no_instagram`);
         }
         
     } catch (error) {
-        console.error('Instagram verification error:', error);
+        console.error('❌ Instagram verification error:', error.response?.data || error.message);
         req.flash('error', 'Erreur lors de la vérification Instagram. Veuillez réessayer.');
         res.redirect(`/verify-social?code=${verifyCode}&error=verification_failed`);
     }
 });
-
-
 
 // Step 4: Skip social verification (optional - for TikTok or later)
 router.post('/skip-social-verification', async (req, res) => {

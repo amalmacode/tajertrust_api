@@ -85,7 +85,7 @@
 
 <% if (isInstagram && !seller.is_social_verified) { %>
     <!-- Section spéciale pour Facebook Reviewers -->
-    <div class="facebook-reviewers-section" style="background: linear-gradient(135deg, #1877f2, #42a5f5); color: white; padding: 25px; border-radius: 12px; margin: 30px 0; text-align: center;">
+    <!-- <div class="facebook-reviewers-section" style="background: linear-gradient(135deg, #1877f2, #42a5f5); color: white; padding: 25px; border-radius: 12px; margin: 30px 0; text-align: center;">
         <h3>🔍 FOR FACEBOOK APP REVIEWERS</h3>
         <p><strong>Special Demo Mode Available</strong></p>
         <p>Click below to see a complete demonstration of Instagram verification with simulated success (shows what would happen with instagram_business_basic permission)</p>
@@ -110,13 +110,13 @@
         <p style="font-size: 14px; margin-top: 15px;">
             <strong>Note:</strong> This demonstrates exactly what would happen if instagram_business_basic permission was approved.
         </p>
-    </div>
+    </div> -->
     
     <!-- Séparateur -->
-    <div style="text-align: center; margin: 30px 0;">
+    <!-- <div style="text-align: center; margin: 30px 0;">
         <hr style="width: 50%; opacity: 0.3;">
         <p style="color: #666; margin: 20px 0;"><strong>Regular User Flow (Currently Shows Permission Error)</strong></p>
-    </div>
+    </div> -->
 <% } %>
 
                     <!-- FIN DEMO -->
@@ -125,12 +125,12 @@
                             📷 Vérifier mon Instagram Business
                         </a>
                         
-                        <form action="/skip-social-verification" method="POST" style="margin-top: 15px;">
+                        <!-- <form action="/skip-social-verification" method="POST" style="margin-top: 15px;">
                             <input type="hidden" name="code" value="<%= code %>">
                             <button type="submit" class="btn btn-link" onclick="return confirm('Êtes-vous sûr de vouloir ignorer la vérification? Cela réduira votre crédibilité.')">
                                 Ignorer pour l'instant
                             </button>
-                        </form>
+                        </form> -->
                     </div>
                     <div class="verification-benefits">
                         <h4>🛡️ Avantages de la vérification:</h4>
