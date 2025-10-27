@@ -112,7 +112,7 @@ header {
         .mobile-menu-toggle span {
             width: 25px;
             height: 3px;
-            background-color: white;
+            background-color: rgb(100, 141, 191);
             border-radius: 3px;
             transition: all 0.3s ease;
         }
@@ -219,7 +219,7 @@ header {
             position: fixed;
             top: 70px;
             left: 0;
-            width: 100%;
+            width: 80%;
             height: calc(100vh - 70px);
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 999;
