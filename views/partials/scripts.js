@@ -1,4 +1,4 @@
-<script>
+
     document.addEventListener('DOMContentLoaded', () => {
       console.log("✅ scripts.ejs loaded");
 
@@ -347,6 +347,4 @@ if (!allowedTypes.includes(file.type)) {
   const closeFileFormatModal = () => {
   document.getElementById('fileFormatModal').classList.add('hidden');
 };
-
-  </script>
   

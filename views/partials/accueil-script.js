@@ -1,4 +1,4 @@
- <script>
+
       // Mobile menu toggle functionality
       document.addEventListener('DOMContentLoaded', function() {
           const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
@@ -26,4 +26,4 @@
               }
           });
       });
-  </script>
+  
