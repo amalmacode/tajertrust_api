@@ -1,6 +1,5 @@
-
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log("✅ scripts.ejs loaded");
+document.addEventListener('DOMContentLoaded', () => {
+      console.log("✅ scripts.js loaded");
 
       // 🔍 Search Filter of my blacklist 
       const searchInput = document.getElementById('searchInput');
