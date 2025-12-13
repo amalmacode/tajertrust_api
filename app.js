@@ -44,19 +44,22 @@ app.use(session({
     pool: pool,
     tableName: 'session',
   }) : undefined, // no store in development (uses memory)
+  name: 'tajertrust.sid',
   secret: process.env.SESSION_SECRET || 'dev-secret',
   resave: false,
   saveUninitialized: false,
+  proxy: true,
   cookie: {
-    secure: isProduction, // only secure in production
+    secure: false,
     httpOnly: true,
+    sameSite: 'lax'
   }
 }));
 
 // Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
-// Make isAdmin available to all views
+// Make isAdmin available to all 
 app.use(setAdminFlag);
 
 // use passport 
