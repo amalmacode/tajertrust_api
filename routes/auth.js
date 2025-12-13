@@ -3,7 +3,6 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../db');
 const crypto = require('crypto');
-// const nodemailer = require('nodemailer');
 const { ensureAuthenticated,upload } = require('../middlewares/auth');
 const { ensureAdmin } = require('../middlewares/auth');
 const passport = require('passport');
@@ -29,18 +28,6 @@ const storage = multer.diskStorage({
 });
 
 const uploadCsv = multer({ storage: storage });
-
- // Send confirmation email
-//  const transporter = nodemailer.createTransport({
-//   service: 'gmail', // or your provider
-//   auth: {
-//     user: 'amaldotrading@gmail.com',
-//     pass: 'yszy wsfr dhyb sbaa'  // Use app password for Gmail
-//   },
-//   tls: {
-//     rejectUnauthorized: false // Accept self-signed certificates
-//   }
-// });
 
 // Add SendGrid instead:
 const sgMail = require('@sendgrid/mail');
@@ -99,81 +86,6 @@ router.get('/register', (req, res) => {
 });
 
 // POST Register
-// router.post('/register', async (req, res) => {
-//   const { business_name, email, password, confirmPassword} = req.body;
-//   let { social_link, website} = req.body;
- 
-//   try {
-//      // Check if social_link exists
-//      if (!social_link || social_link.trim() === '') {
-//       req.flash('error', "Le lien vers votre compte social est obligatoire.");
-//       return res.redirect('/register');
-//     }
-
-//     social_link = social_link.trim();
-
-//     // Accept @username or full URLs — transform if necessary
-//     if (social_link.startsWith('@')) {
-//       // Convert @username to a full Instagram link by default
-//       social_link = `https://www.instagram.com/${social_link.slice(1)}`;
-//     }
-
-//     // Validate that it's an Instagram or TikTok URL
-//     const validInstagram = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/i;
-//     const validTikTok = /^https?:\/\/(www\.)?tiktok\.com\/(@)?[a-zA-Z0-9_.]+\/?$/i;
-
-//     if (!validInstagram.test(social_link) && !validTikTok.test(social_link)) {
-//       req.flash('error', "Veuillez fournir un lien Instagram ou TikTok valide, ou utilisez le format @username.");
-//       return res.redirect('/register');
-//     }
-//      // Now generate the other values
-//     const verificationToken = crypto.randomBytes(32).toString('hex');
-//     const verifyCode = 'verify-' + crypto.randomBytes(3).toString('hex'); // e.g., verify-a1b2c3
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//    // Insert the seller
-//     await pool.query(
-//       `INSERT INTO sellers (
-//         business_name, email, password, social_link, website, 
-//         is_verified, verification_token, verify_code, created_at
-//       )
-//       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
-//       [
-//         business_name,
-//         email,
-//         hashedPassword,
-//         social_link,
-//         website || '',
-//         false,
-//         verificationToken,
-//         verifyCode
-//       ]
-//     );
-    
-//     // Send confirmation email
-//    const verifyLink = `${process.env.verifyLink}/verify?token=${verificationToken}`;
-    
-//     console.log("Sending confirmation email to:", email);
-//     await transporter.sendMail({
-//       to: email,
-//       subject: "Confirmez votre email - TajerTrust",
-//       html: `<p>Bienvenue sur TajerTrust!</p><p>Veuillez confirmer votre inscription en cliquant ici :</p><a href="${verifyLink}">Confirmer</a>`
-//     });
-//     req.flash('success', "Veuillez confirmer votre email, pour réussir votre inscription.");
-//     // res.redirect('/register');
-//     res.redirect(`/verify-social?code=${verifyCode}`);
-
-//   } catch (err) {
-//     console.error(err);
-//     let msg = "Une erreur est survenue lors de l'inscription.";
-//     if (err.code === '23505') {
-//       msg = "Cet email ou lien social est déjà utilisé.";
-//     }
-//     req.flash('error', msg);
-//     res.redirect('/register');
-//   }
-// });
-
-
 router.post('/register', async (req, res) => {
     const { business_name, email, password, confirmPassword } = req.body;
     let { social_link, website } = req.body;
@@ -214,24 +126,50 @@ router.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Insert the seller
-        await pool.query(
-            `INSERT INTO sellers (
-                business_name, email, password, social_link, website, 
-                is_verified, verification_token, verify_code, created_at
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
-            [
-                business_name,
-                email,
-                hashedPassword,
-                social_link,
-                website || '',
-                false,
-                verificationToken,
-                verifyCode
-            ]
-        );
+        // await pool.query(
+        //     `INSERT INTO sellers (
+        //         business_name, email, password, social_link, website, 
+        //         is_verified, verification_token, verify_code, created_at
+        //     )
+        //     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+        //     [
+        //         business_name,
+        //         email,
+        //         hashedPassword,
+        //         social_link,
+        //         website || '',
+        //         false,
+        //         verificationToken,
+        //         verifyCode
+        //     ]
+        // );
+
         
+        // ✅ Insert into pending_registrations
+        await pool.query(
+          `INSERT INTO pending_registrations (
+              business_name,
+              email,
+              password,
+              social_link,
+              website,
+              verification_token,
+              verify_code,
+              created_at
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+          [
+              business_name,
+              email,
+              hashedPassword,
+              social_link,
+              website || '',
+              verificationToken,
+              verifyCode
+          ]
+        );
+
+
         // ========================================
         // SEND VERIFICATION EMAIL WITH SENDGRID
         // ========================================
@@ -471,7 +409,8 @@ router.get('/verify-social', async (req, res) => {
     try {
         // Find seller by verify_code
         const sellerResult = await pool.query(
-            'SELECT * FROM sellers WHERE verify_code = $1',
+            //  'SELECT * FROM sellers  WHERE verify_code = $1',
+            'SELECT * FROM pending_registrations  WHERE verify_code = $1',
             [code]
         );
         
@@ -481,7 +420,32 @@ router.get('/verify-social', async (req, res) => {
         }
         
         const seller = sellerResult.rows[0];
-        
+        // Insert real seller
+        await pool.query(
+          `INSERT INTO sellers (
+              business_name,
+              email,
+              password,
+              social_link,
+              website,
+              is_verified,
+              created_at
+          )
+          VALUES ($1, $2, $3, $4, $5, true, NOW())`,
+          [
+            user.business_name,
+            user.email,
+            user.password,
+            user.social_link,
+            user.website
+          ]
+        );
+          // Delete pending record : Prevents duplicates
+        await pool.query(
+          `DELETE FROM pending_registrations WHERE id = $1`,
+          [user.id]
+        );
+
         // Check if already verified
         if (seller.is_social_verified) {
             req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
@@ -541,64 +505,6 @@ router.get('/auth/instagram/verify', async (req, res) => {
 });
 
 // Step 3: Instagram verification callback
-// router.get('/auth/instagram/callback', async (req, res) => {
-//     const { code, state } = req.query;
-//     const verifyCode = req.session.verifyCode;
-    
-//     if (!state || !state.startsWith('verify_instagram_') || !verifyCode) {
-//         req.flash('error', 'Session de vérification invalide.');
-//         return res.redirect('/register');
-//     }
-    
-//     try {
-//         // Exchange code for access token
-//         const tokenResponse = await axios.get(`https://graph.facebook.com/v23.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(FACEBOOK_CONFIG.REDIRECT_URI)}&code=${code}`);
-        
-//         const access_token = tokenResponse.data.access_token;
-        
-//         // Get Instagram business account
-//         const instagramAccount = await getInstagramBusinessAccountWithPages(access_token);
-        
-//         if (instagramAccount) {
-//             // Update seller with verified Instagram data
-//             await pool.query(`
-//                 UPDATE sellers 
-//                 SET 
-//                     is_social_verified = true,
-//                     social_verified_at = NOW(),
-//                     instagram_username = $1,
-//                     instagram_account_id = $2,
-//                     instagram_account_type = $3,
-//                     instagram_page_name = $4,
-//                     instagram_followers_count = $5
-//                 WHERE verify_code = $6
-//             `, [
-//                 instagramAccount.username,
-//                 instagramAccount.id,
-//                 instagramAccount.account_type,
-//                 instagramAccount.page_name,
-//                 instagramAccount.followers_count || 0,
-//                 verifyCode
-//             ]);
-            
-//             // Clear session
-//             delete req.session.verifyCode;
-            
-//             req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
-//             res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
-            
-//         } else {
-//             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur connecté à une page Facebook.');
-//             res.redirect(`/verify-social?code=${verifyCode}&error=no_instagram`);
-//         }
-        
-//     } catch (error) {
-//         console.error('Instagram verification error:', error);
-//         req.flash('error', 'Erreur lors de la vérification Instagram. Veuillez réessayer.');
-//         res.redirect(`/verify-social?code=${verifyCode}&error=verification_failed`);
-//     }
-// });
-
 router.get('/auth/instagram/callback', async (req, res) => {
     const { code, state } = req.query;
     const verifyCode = req.session.verifyCode;
@@ -695,56 +601,7 @@ router.post('/skip-social-verification', async (req, res) => {
     }
 });
 
-// POST : verify social check (verifier le code saisi dans BIO)
-// router.post('/verify-social-check', async (req, res) => {
-//   const { code } = req.body;
 
-//   try {
-//     const result = await pool.query(
-//       'SELECT id, social_link FROM sellers WHERE verify_code = $1',
-//       [code]
-//     );
-//     if (result.rows.length === 0) {
-//       req.flash('error', 'Code invalide.');
-//       return res.redirect('/register');
-//     }
-
-//     const seller = result.rows[0];
-//     const browser = await puppeteer.launch({ headless: 'new' });
-//     const page = await browser.newPage();
-
-//     await page.setUserAgent(
-//       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36'
-//     );
-
-//     await page.goto(seller.social_link, {
-//       waitUntil: 'domcontentloaded',
-//       timeout: 60000,
-//     });
-
-//     const bio = await page.$eval('meta[name="description"]', el => el.content);
-
-//     console.log("Bio found:", bio);
-
-//     if (bio.includes(code)) {
-//       await pool.query(
-//         'UPDATE sellers SET is_social_verified = true WHERE id = $1',
-//         [seller.id]
-//       );
-//       req.flash('success', 'Compte vérifié avec succès !');
-//     } else {
-//       req.flash('error', 'Code introuvable dans votre bio.');
-//     }
-
-//     await browser.close();
-//     res.redirect(`/verify-social?code=${code}`);
-//   } catch (err) {
-//     console.error('Erreur de vérification:', err);
-//     req.flash('error', 'Une erreur est survenue lors de la vérification.');
-//     res.redirect(`/verify-social?code=${code}`);
-//   }
-// });
-// POST /Verify
 router.get('/verify', async (req, res) => {
   const { token } = req.query;
 
@@ -1318,7 +1175,6 @@ router.post('/admin/blacklist_reasons/delete/:id', ensureAdmin, async (req, res)
   }
   res.redirect('/blacklist_reasons');
 });
-
 
 // Help Page
 router.get('/help', (req, res) => {
@@ -1912,82 +1768,6 @@ router.get('/',(req, res) => {
   }
 });
 
-// Helper function to get Instagram business account (same as before)
-
-// async function getInstagramBusinessAccountWithPages(access_token) {
-//     try {
-//         console.log('=== Getting Facebook Pages with Instagram Accounts (COMPREHENSIVE) ===');
-        
-//         const meResponse = await axios.get(`https://graph.facebook.com/v21.0/me?access_token=${access_token}`);
-//         console.log('User info:', meResponse.data);
-        
-//         const pagesWithInstagram = [];
-        
-//         // Method 1: Get pages directly managed by user (not in Business Manager)
-//         try {
-//             const pagesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${access_token}`);
-//             console.log('Direct pages API response:', pagesResponse.data);
-            
-//             if (pagesResponse.data.data && pagesResponse.data.data.length > 0) {
-//                 for (const page of pagesResponse.data.data) {
-//                     await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
-//                 }
-//             }
-//         } catch (error) {
-//             console.log('Direct pages access failed:', error.response?.data?.error?.message);
-//         }
-        
-//         // Method 2: Get pages through Business Manager
-//         try {
-//             const businessesResponse = await axios.get(`https://graph.facebook.com/v21.0/me/businesses?fields=id,name&access_token=${access_token}`);
-//             console.log('Businesses response:', businessesResponse.data);
-            
-//             if (businessesResponse.data.data && businessesResponse.data.data.length > 0) {
-//                 for (const business of businessesResponse.data.data) {
-//                     try {
-//                         // Get pages owned by this business
-//                         const businessPagesResponse = await axios.get(`https://graph.facebook.com/v21.0/${business.id}/owned_pages?fields=id,name,access_token&access_token=${access_token}`);
-                        
-//                         if (businessPagesResponse.data.data) {
-//                             for (const page of businessPagesResponse.data.data) {
-//                                 await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
-//                             }
-//                         }
-//                     } catch (businessPageError) {
-//                         console.log(`Error getting pages for business ${business.name}:`, businessPageError.response?.data?.error?.message);
-//                     }
-//                 }
-//             }
-//         } catch (businessError) {
-//             console.log('Business Manager access failed:', businessError.response?.data?.error?.message);
-//         }
-        
-//         // Method 3: Try to access pages the user has roles on (alternative approach)
-//         try {
-//             const rolesResponse = await axios.get(`https://graph.facebook.com/v21.0/me?fields=accounts{id,name,access_token,roles}&access_token=${access_token}`);
-            
-//             if (rolesResponse.data.accounts && rolesResponse.data.accounts.data) {
-//                 for (const page of rolesResponse.data.accounts.data) {
-//                     await checkPageForInstagram(page, pagesWithInstagram, page.access_token);
-//                 }
-//             }
-//         } catch (rolesError) {
-//             console.log('Roles-based access failed:', rolesError.response?.data?.error?.message);
-//         }
-        
-//         // Remove duplicates based on page_id
-//         const uniquePages = pagesWithInstagram.filter((page, index, self) => 
-//             index === self.findIndex(p => p.page_id === page.page_id)
-//         );
-        
-//         console.log(`📊 Total found: ${uniquePages.length} unique pages with Instagram accounts`);
-//         return uniquePages;
-        
-//     } catch (error) {
-//         console.error('Error getting pages:', error.response?.data || error.message);
-//         return [];
-//     }
-// }
 
 // FIXED: Now includes Business Portfolio access
 async function getInstagramBusinessAccountWithPages(access_token) {
@@ -2559,79 +2339,6 @@ router.get('/complete-instagram-profile', (req, res) => {
     });
 });
 
-// Complete Instagram profile route (POST)
-// router.post('/complete-instagram-profile', async (req, res) => {
-//     const { email, website } = req.body;
-//     const pendingRegistration = req.session.pendingRegistration;
-    
-//     if (!pendingRegistration || !pendingRegistration.userId) {
-//         req.flash('error', 'Session d\'inscription expirée. Veuillez recommencer.');
-//         return res.redirect('/register');
-//     }
-    
-//     try {
-//         // Validate email
-//         if (!email || !email.includes('@')) {
-//             req.flash('error', 'Veuillez fournir un email valide.');
-//             return res.redirect('/complete-instagram-profile');
-//         }
-        
-//         // Check if email is already used
-//         const existingEmail = await pool.query('SELECT id FROM sellers WHERE email = $1 AND id != $2', [email, pendingRegistration.userId]);
-//         if (existingEmail.rows.length > 0) {
-//             req.flash('error', 'Cet email est déjà utilisé.');
-//             return res.redirect('/complete-instagram-profile');
-//         }
-        
-//         // Update user profile with real email
-//         await pool.query(`
-//             UPDATE sellers 
-//             SET email = $1, website = $2
-//             WHERE id = $3
-//         `, [email, website || '', pendingRegistration.userId]);
-        
-//         // Send email verification
-//         const verifyLink = `${process.env.VERIFYLINK}/verify?token=${pendingRegistration.verificationToken}`;
-        
-//         await transporter.sendMail({
-//             to: email,
-//             subject: "Confirmez votre email - TajerTrust",
-//             html: `
-//                 <p>Bienvenue sur TajerTrust!</p>
-//                 <p>Votre compte Instagram (@${pendingRegistration.instagram_username}) a été connecté avec succès.</p>
-//                 <p>Veuillez confirmer votre email en cliquant sur le lien ci-dessous :</p>
-//                 <a href="${verifyLink}">Confirmer mon email</a>
-//                 <p><strong>Important:</strong> Votre compte sera également validé par notre équipe avant activation complète.</p>
-//             `
-//         });
-        
-//         // Send notification to admin
-//         await transporter.sendMail({
-//             to: process.env.ADMIN_EMAIL || 'admin@tajertrust.com',
-//             subject: "Nouveau compte Instagram à valider - TajerTrust",
-//             html: `
-//                 <p>Un nouveau compte Instagram vient de s'inscrire :</p>
-//                 <ul>
-//                     <li><strong>Business:</strong> ${pendingRegistration.business_name}</li>
-//                     <li><strong>Instagram:</strong> @${pendingRegistration.instagram_username}</li>
-//                     <li><strong>Email:</strong> ${email}</li>
-//                 </ul>
-//                 <p>Veuillez valider ce compte dans le tableau de bord admin.</p>
-//             `
-//         });
-        
-//         // Clear session data
-//         delete req.session.pendingRegistration;
-        
-//         req.flash('success', `Inscription terminée! Un email de confirmation a été envoyé à ${email}. Votre compte sera validé par notre équipe sous 24-48h.`);
-//         res.redirect('/login');
-        
-//     } catch (error) {
-//         console.error('Complete profile error:', error);
-//         req.flash('error', 'Erreur lors de la mise à jour du profil.');
-//         res.redirect('/complete-instagram-profile');
-//     }
-// });
 
 router.post('/complete-instagram-profile', async (req, res) => {
     const { email, website } = req.body;
