@@ -1268,43 +1268,6 @@ router.get('/validated_sellers', ensureAdmin, async (req, res) => {
 
 });
 
-// Valider un vendeur
-// router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
-//   const isAdmin = (await pool.query('SELECT 1 FROM admins WHERE email = $1', [req.user.email])).rows.length > 0;
-//   const sellerId = req.params.id;
-//   const currentPage = req.query.page || 1;
-
-//   if (!isAdmin) {
-//     return res.redirect('/login');
-//   }
-
-//   try {
-
-//     const sellers = await pool.query('SELECT * FROM sellers WHERE id = $1', [sellerId]);
-//     const seller = sellers.rows[0];
-
-//     if (!seller) {
-//       req.flash('error', 'Vendeur introuvable.');
-//       return res.redirect('/pending_sellers?page='+currentPage);
-//     }
-
-//     if (!seller.is_verified) {
-//       req.flash('error', "Ce vendeur n'a pas encore vérifié son email.");
-//       return res.redirect('/pending_sellers?page='+currentPage);
-//     }
-//     const result = await pool.query("UPDATE sellers SET is_validated = true WHERE id = $1 RETURNING business_name", [req.params.id]);
-//     const validatedName = result.rows[0]?.business_name || "Inconnu";
-//   //  console.log(validatedName+ " est validé");
-
-//     req.flash('success', `Le seller ${validatedName} a été validé avec succès.`);
-//     res.redirect('/pending_sellers?page='+currentPage);
-
-//   } catch (error) {
-//     console.error(error);
-//     req.flash('error', 'Une erreur est survenue lors de la validation.');
-//   }
-//   res.redirect('/pending_sellers?page='+currentPage);
-// });
 
 // Valider un vendeur
 router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
@@ -1471,23 +1434,6 @@ router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
               </a>
             </center>
             
-            <h3 style="color: #4F46E5; margin-top: 30px;">Ce que vous pouvez faire maintenant:</h3>
-            
-            <ul class="feature-list">
-              <li>Accéder à votre tableau de bord personnalisé</li>
-              <li>Générer votre badge de vérification TajerTrust</li>
-              <li>Partager votre profil vérifié avec vos clients</li>
-              <li>Augmenter la confiance de vos acheteurs</li>
-              <li>Profiter de tous les outils de la plateforme</li>
-            </ul>
-            
-            <div class="info-box" style="background-color: #FEF3C7; border-left-color: #F59E0B;">
-              <p style="margin: 0;">
-                <strong>💡 Conseil:</strong> N'oubliez pas d'ajouter votre badge TajerTrust 
-                sur vos réseaux sociaux pour montrer à vos clients que vous êtes un vendeur vérifié!
-              </p>
-            </div>
-            
             <p style="margin-top: 30px;">
               Si vous avez des questions ou besoin d'aide, notre équipe est là pour vous accompagner.
             </p>
@@ -1522,15 +1468,6 @@ Nous avons le plaisir de vous informer que votre compte TajerTrust a été valid
 Vous pouvez dès maintenant vous connecter et profiter de tous les avantages de la plateforme TajerTrust.
 
 Connectez-vous ici: ${process.env.VERIFYLINK || 'https://tajertrust.com'}/login
-
-Ce que vous pouvez faire maintenant:
-✓ Accéder à votre tableau de bord personnalisé
-✓ Générer votre badge de vérification TajerTrust
-✓ Partager votre profil vérifié avec vos clients
-✓ Augmenter la confiance de vos acheteurs
-✓ Profiter de tous les outils de la plateforme
-
-💡 Conseil: N'oubliez pas d'ajouter votre badge TajerTrust sur vos réseaux sociaux!
 
 Informations de connexion:
 Email: ${validatedSeller.email}
