@@ -1332,7 +1332,7 @@ router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
 
     // ✅ Update seller as validated
     const result = await pool.query(
-      "UPDATE sellers SET is_validated = true, validated_at = NOW() WHERE id = $1 RETURNING *", 
+      "UPDATE sellers SET is_validated = true WHERE id = $1 RETURNING *", 
       [sellerId]
     );
     
