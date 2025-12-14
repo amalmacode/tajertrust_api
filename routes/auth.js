@@ -84,8 +84,8 @@ router.get('/register', (req, res) => {
   currentPath: req.path // Not required, but explicit
  });
 });
-
 // POST Register
+
 router.post('/register', async (req, res) => {
     const { business_name, email, password, confirmPassword } = req.body;
     let { social_link, website } = req.body;
@@ -408,56 +408,31 @@ router.get('/verify-social', async (req, res) => {
     
     try {
         // Find seller by verify_code
-        const sellerResult = await pool.query(
+        const pendingResult = await pool.query(
             //  'SELECT * FROM sellers  WHERE verify_code = $1',
             'SELECT * FROM pending_registrations  WHERE verify_code = $1',
             [code]
         );
         
-        if (sellerResult.rows.length === 0) {
+        if (pendingResult.rows.length === 0) {
             req.flash('error', 'Code de vérification invalide.');
             return res.redirect('/register');
         }
         
-        const seller = sellerResult.rows[0];
-        // Insert real seller
-        await pool.query(
-          `INSERT INTO sellers (
-              business_name,
-              email,
-              password,
-              social_link,
-              website,
-              is_verified,
-              created_at
-          )
-          VALUES ($1, $2, $3, $4, $5, true, NOW())`,
-          [
-            user.business_name,
-            user.email,
-            user.password,
-            user.social_link,
-            user.website
-          ]
-        );
-          // Delete pending record : Prevents duplicates
-        await pool.query(
-          `DELETE FROM pending_registrations WHERE id = $1`,
-          [user.id]
-        );
-
+        const pending = pendingResult.rows[0];
+      
         // Check if already verified
-        if (seller.is_social_verified) {
+        if (pending.is_social_verified) {
             req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
             return res.redirect('/login');
         }
         
         // Determine social platform from their provided link
-        const isInstagram = seller.social_link.includes('instagram.com');
-        const isTikTok = seller.social_link.includes('tiktok.com');
+        const isInstagram = pending.social_link.includes('instagram.com');
+        const isTikTok = pending.social_link.includes('tiktok.com');
         
         res.render('verify-social', {
-            seller,
+            seller : pending,
             code,
             isInstagram,
             isTikTok,
@@ -477,6 +452,51 @@ router.get('/verify-social', async (req, res) => {
         res.redirect('/register');
     }
 });
+
+
+router.post('/verify-social/complete', async (req, res) => {
+  const { code } = req.body;
+
+  const pendingResult = await pool.query(
+    'SELECT * FROM pending_registrations WHERE verify_code = $1',
+    [code]
+  );
+
+  if (pendingResult.rows.length === 0) {
+    req.flash('error', 'Session expirée.');
+    return res.redirect('/register');
+  }
+
+  const user = pendingResult.rows[0];
+
+  await pool.query(
+    `INSERT INTO sellers (
+      business_name,
+      email,
+      password,
+      social_link,
+      website,
+      is_verified,
+      created_at
+    ) VALUES ($1, $2, $3, $4, $5, true, NOW())`,
+    [
+      user.business_name,
+      user.email,
+      user.password,
+      user.social_link,
+      user.website
+    ]
+  );
+
+  await pool.query(
+    'DELETE FROM pending_registrations WHERE id = $1',
+    [user.id]
+  );
+
+  req.flash('success', 'Inscription finalisée avec succès 🎉');
+  res.redirect('/login');
+});
+
 
 // Step 2: Instagram verification initiation
 router.get('/auth/instagram/verify', async (req, res) => {
