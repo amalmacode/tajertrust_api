@@ -86,6 +86,318 @@ router.get('/register', (req, res) => {
 });
 // POST Register
 
+// router.post('/register', async (req, res) => {
+//     const { business_name, email, password, confirmPassword } = req.body;
+//     let { social_link, website } = req.body;
+    
+//     try {
+//         // Validate password confirmation
+//         if (password !== confirmPassword) {
+//             req.flash('error', 'Les mots de passe ne correspondent pas.');
+//             return res.redirect('/register');
+//         }
+        
+//         // Check if social_link exists
+//         if (!social_link || social_link.trim() === '') {
+//             req.flash('error', "Le lien vers votre compte social est obligatoire.");
+//             return res.redirect('/register');
+//         }
+        
+//         social_link = social_link.trim();
+        
+//         // Accept @username or full URLs — transform if necessary
+//         if (social_link.startsWith('@')) {
+//             // Convert @username to a full Instagram link by default
+//             social_link = `https://www.instagram.com/${social_link.slice(1)}`;
+//         }
+        
+//         // Validate that it's an Instagram or TikTok URL
+//         const validInstagram = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/i;
+//         const validTikTok = /^https?:\/\/(www\.)?tiktok\.com\/(@)?[a-zA-Z0-9_.]+\/?$/i;
+        
+//         if (!validInstagram.test(social_link) && !validTikTok.test(social_link)) {
+//             req.flash('error', "Veuillez fournir un lien Instagram ou TikTok valide, ou utilisez le format @username.");
+//             return res.redirect('/register');
+//         }
+        
+//         // Generate verification tokens
+//         const verificationToken = crypto.randomBytes(32).toString('hex');
+//         const verifyCode = 'verify-' + crypto.randomBytes(3).toString('hex'); // e.g., verify-a1b2c3
+//         const hashedPassword = await bcrypt.hash(password, 10);
+        
+//         // Insert the seller
+//         // await pool.query(
+//         //     `INSERT INTO sellers (
+//         //         business_name, email, password, social_link, website, 
+//         //         is_verified, verification_token, verify_code, created_at
+//         //     )
+//         //     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+//         //     [
+//         //         business_name,
+//         //         email,
+//         //         hashedPassword,
+//         //         social_link,
+//         //         website || '',
+//         //         false,
+//         //         verificationToken,
+//         //         verifyCode
+//         //     ]
+//         // );
+
+        
+//         // ✅ Insert into pending_registrations
+//         await pool.query(
+//           `INSERT INTO pending_registrations (
+//               business_name,
+//               email,
+//               password,
+//               social_link,
+//               website,
+//               verification_token,
+//               verify_code,
+//               created_at
+//           )
+//           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+//           [
+//               business_name,
+//               email,
+//               hashedPassword,
+//               social_link,
+//               website || '',
+//               verificationToken,
+//               verifyCode
+//           ]
+//         );
+
+
+//         // ========================================
+//         // SEND VERIFICATION EMAIL WITH SENDGRID
+//         // ========================================
+        
+//         const verifyLink = `${process.env.VERIFYLINK}/verify?token=${verificationToken}`;
+        
+//         const verificationEmailMsg = {
+//             to: email,
+//             from: {
+//                 email: process.env.SENDGRID_FROM_EMAIL,
+//                 name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
+//             },
+//             subject: "Confirmez votre email - TajerTrust",
+//             html: `
+//                 <!DOCTYPE html>
+//                 <html>
+//                 <head>
+//                     <style>
+//                         body { 
+//                             font-family: Arial, sans-serif; 
+//                             line-height: 1.6; 
+//                             color: #333; 
+//                             max-width: 600px;
+//                             margin: 0 auto;
+//                             padding: 20px;
+//                         }
+//                         .header {
+//                             background-color: #4F46E5;
+//                             color: white;
+//                             padding: 20px;
+//                             text-align: center;
+//                             border-radius: 5px 5px 0 0;
+//                         }
+//                         .content {
+//                             background-color: #ffffff;
+//                             padding: 30px;
+//                             border: 1px solid #e5e7eb;
+//                         }
+//                         .button { 
+//                             display: inline-block; 
+//                             padding: 14px 35px; 
+//                             background-color: #4F46E5; 
+//                             color: white !important; 
+//                             text-decoration: none; 
+//                             border-radius: 5px; 
+//                             margin: 20px 0;
+//                             font-weight: bold;
+//                         }
+//                         .button:hover {
+//                             background-color: #4338CA;
+//                         }
+//                         .info-box {
+//                             background-color: #f3f4f6;
+//                             padding: 15px;
+//                             border-left: 4px solid #4F46E5;
+//                             margin: 20px 0;
+//                         }
+//                         .footer { 
+//                             margin-top: 30px; 
+//                             padding-top: 20px;
+//                             border-top: 1px solid #e5e7eb;
+//                             font-size: 12px; 
+//                             color: #6b7280;
+//                             text-align: center;
+//                         }
+//                     </style>
+//                 </head>
+//                 <body>
+//                     <div class="header">
+//                         <h1 style="margin: 0;">TajerTrust</h1>
+//                     </div>
+                    
+//                     <div class="content">
+//                         <h2>Bienvenue sur TajerTrust! 👋</h2>
+                        
+//                         <p>Bonjour <strong>${business_name}</strong>,</p>
+                        
+//                         <p>Merci de vous être inscrit sur TajerTrust, la plateforme de vérification pour vendeurs en ligne.</p>
+                        
+//                         <p>Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
+                        
+//                         <center>
+//                             <a href="${verifyLink}" class="button">Confirmer mon email</a>
+//                         </center>
+                        
+//                         <div class="info-box">
+//                             <strong>📋 Informations de votre compte :</strong><br>
+//                             • Business : ${business_name}<br>
+//                             • Email : ${email}<br>
+//                             • Lien social : ${social_link}
+//                         </div>
+                        
+//                         <p style="font-size: 14px; color: #6b7280;">Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
+//                         <p style="word-break: break-all; color: #4F46E5; font-size: 12px;">${verifyLink}</p>
+                        
+//                         <p><strong>⚠️ Important :</strong> Ce lien expire dans 24 heures. Une fois votre email confirmé, votre compte sera validé par notre équipe sous 24-48h.</p>
+//                     </div>
+                    
+//                     <div class="footer">
+//                         <p>Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.</p>
+//                         <p>© 2025 TajerTrust. Tous droits réservés.</p>
+//                     </div>
+//                 </body>
+//                 </html>
+//             `,
+//             text: `Bienvenue sur TajerTrust!
+
+//           Bonjour ${business_name},
+
+//           Merci de vous être inscrit sur TajerTrust.
+
+//           Pour activer votre compte, confirmez votre email en cliquant sur ce lien :
+//           ${verifyLink}
+
+//           Informations de votre compte :
+//           • Business : ${business_name}
+//           • Email : ${email}
+//           • Lien social : ${social_link}
+
+//           Important : Ce lien expire dans 24 heures. Votre compte sera validé par notre équipe sous 24-48h.
+
+//           Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.
+
+//           © 2025 TajerTrust`
+//                   };
+                  
+//         // Send email asynchronously (non-blocking)
+//         console.log("📧 Sending confirmation email to:", email);
+        
+//         sgMail.send(verificationEmailMsg)
+//             .then(() => {
+//                 console.log(`✅ Verification email sent to ${email}`);
+//             })
+//             .catch((error) => {
+//                 console.error('❌ Failed to send verification email:', error.response?.body || error.message);
+//                 // Don't block registration if email fails - user can request resend later
+//             });
+        
+//         // ========================================
+//         // SEND ADMIN NOTIFICATION (OPTIONAL)
+//         // ========================================
+        
+//         const adminNotificationMsg = {
+//             to: process.env.ADMIN_EMAIL,
+//             from: {
+//                 email: process.env.SENDGRID_FROM_EMAIL,
+//                 name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
+//             },
+//             subject: "📝 Nouvelle inscription - TajerTrust",
+//             html: `
+//                 <!DOCTYPE html>
+//                 <html>
+//                 <head>
+//                     <style>
+//                         body { 
+//                             font-family: Arial, sans-serif; 
+//                             line-height: 1.6; 
+//                             color: #333; 
+//                         }
+//                         .info-box { 
+//                             background-color: #f3f4f6; 
+//                             padding: 15px; 
+//                             border-radius: 5px; 
+//                             margin: 15px 0;
+//                         }
+//                         .label { 
+//                             font-weight: bold; 
+//                             color: #4F46E5; 
+//                         }
+//                     </style>
+//                 </head>
+//                 <body>
+//                     <h2>📝 Nouvelle inscription (Email/Password)</h2>
+                    
+//                     <p>Un nouveau vendeur vient de s'inscrire :</p>
+                    
+//                     <div class="info-box">
+//                         <p><span class="label">Business:</span> ${business_name}</p>
+//                         <p><span class="label">Email:</span> ${email}</p>
+//                         <p><span class="label">Lien social:</span> ${social_link}</p>
+//                         <p><span class="label">Website:</span> ${website || 'Non fourni'}</p>
+//                         <p><span class="label">Type:</span> Inscription Email/Password</p>
+//                         <p><span class="label">Date:</span> ${new Date().toLocaleString('fr-FR')}</p>
+//                     </div>
+                    
+//                     <p>⏳ En attente de confirmation email par l'utilisateur.</p>
+//                 </body>
+//                 </html>
+//             `,
+//             text: `Nouvelle inscription (Email/Password)
+
+//             Business: ${business_name}
+//             Email: ${email}
+//             Lien social: ${social_link}
+//             Website: ${website || 'Non fourni'}
+//             Type: Inscription Email/Password
+//             Date: ${new Date().toLocaleString('fr-FR')}
+
+//             En attente de confirmation email par l'utilisateur.`
+//                     };
+        
+//         // Send admin notification (optional, non-blocking)
+//           sgMail.send(adminNotificationMsg)
+//               .then(() => {
+//                   console.log('✅ Admin notification sent');
+//               })
+//               .catch((error) => {
+//                   console.error('❌ Failed to send admin notification:', error.response?.body || error.message);
+//               });
+          
+//         // Respond immediately
+//         req.flash('success', "Inscription réussie! Veuillez confirmer votre email pour activer votre compte.");
+//         res.redirect(`/verify-social?code=${verifyCode}`);
+        
+//     } catch (err) {
+//         console.error('Registration error:', err);
+//         let msg = "Une erreur est survenue lors de l'inscription.";
+        
+//         if (err.code === '23505') {
+//             msg = "Cet email ou lien social est déjà utilisé.";
+//         }
+        
+//         req.flash('error', msg);
+//         res.redirect('/register');
+//     }
+// });
+
+// POST Register - Step 1: Create pending registration
 router.post('/register', async (req, res) => {
     const { business_name, email, password, confirmPassword } = req.body;
     let { social_link, website } = req.body;
@@ -105,13 +417,12 @@ router.post('/register', async (req, res) => {
         
         social_link = social_link.trim();
         
-        // Accept @username or full URLs — transform if necessary
+        // Accept @username or full URLs
         if (social_link.startsWith('@')) {
-            // Convert @username to a full Instagram link by default
             social_link = `https://www.instagram.com/${social_link.slice(1)}`;
         }
         
-        // Validate that it's an Instagram or TikTok URL
+        // Validate Instagram or TikTok URL
         const validInstagram = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/i;
         const validTikTok = /^https?:\/\/(www\.)?tiktok\.com\/(@)?[a-zA-Z0-9_.]+\/?$/i;
         
@@ -120,60 +431,52 @@ router.post('/register', async (req, res) => {
             return res.redirect('/register');
         }
         
+        // Check if email already exists in sellers table
+        const existingSeller = await pool.query(
+            'SELECT id FROM sellers WHERE email = $1',
+            [email]
+        );
+        
+        if (existingSeller.rows.length > 0) {
+            req.flash('error', 'Cet email est déjà utilisé.');
+            return res.redirect('/register');
+        }
+        
         // Generate verification tokens
         const verificationToken = crypto.randomBytes(32).toString('hex');
-        const verifyCode = 'verify-' + crypto.randomBytes(3).toString('hex'); // e.g., verify-a1b2c3
+        const verifyCode = 'verify-' + crypto.randomBytes(3).toString('hex');
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Insert the seller
-        // await pool.query(
-        //     `INSERT INTO sellers (
-        //         business_name, email, password, social_link, website, 
-        //         is_verified, verification_token, verify_code, created_at
-        //     )
-        //     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
-        //     [
-        //         business_name,
-        //         email,
-        //         hashedPassword,
-        //         social_link,
-        //         website || '',
-        //         false,
-        //         verificationToken,
-        //         verifyCode
-        //     ]
-        // );
-
-        
-        // ✅ Insert into pending_registrations
+        // ✅ Insert into pending_registrations (not sellers yet)
         await pool.query(
-          `INSERT INTO pending_registrations (
-              business_name,
-              email,
-              password,
-              social_link,
-              website,
-              verification_token,
-              verify_code,
-              created_at
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-          [
-              business_name,
-              email,
-              hashedPassword,
-              social_link,
-              website || '',
-              verificationToken,
-              verifyCode
-          ]
+            `INSERT INTO pending_registrations (
+                business_name, email, password, social_link, website,
+                verification_token, verify_code, created_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+            ON CONFLICT (email) 
+            DO UPDATE SET 
+                business_name = EXCLUDED.business_name,
+                password = EXCLUDED.password,
+                social_link = EXCLUDED.social_link,
+                website = EXCLUDED.website,
+                verification_token = EXCLUDED.verification_token,
+                verify_code = EXCLUDED.verify_code,
+                created_at = NOW()`,
+            [
+                business_name,
+                email,
+                hashedPassword,
+                social_link,
+                website || '',
+                verificationToken,
+                verifyCode
+            ]
         );
-
-
-        // ========================================
-        // SEND VERIFICATION EMAIL WITH SENDGRID
-        // ========================================
         
+        // ========================================
+        // SEND VERIFICATION EMAIL
+        // ========================================
         const verifyLink = `${process.env.VERIFYLINK}/verify?token=${verificationToken}`;
         
         const verificationEmailMsg = {
@@ -218,9 +521,6 @@ router.post('/register', async (req, res) => {
                             margin: 20px 0;
                             font-weight: bold;
                         }
-                        .button:hover {
-                            background-color: #4338CA;
-                        }
                         .info-box {
                             background-color: #f3f4f6;
                             padding: 15px;
@@ -249,10 +549,10 @@ router.post('/register', async (req, res) => {
                         
                         <p>Merci de vous être inscrit sur TajerTrust, la plateforme de vérification pour vendeurs en ligne.</p>
                         
-                        <p>Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
+                        <p>Pour continuer, veuillez d'abord <strong>vérifier votre compte social Instagram/TikTok</strong>, puis confirmer votre email.</p>
                         
                         <center>
-                            <a href="${verifyLink}" class="button">Confirmer mon email</a>
+                            <a href="${verifyLink}" class="button">Continuer la vérification</a>
                         </center>
                         
                         <div class="info-box">
@@ -262,10 +562,7 @@ router.post('/register', async (req, res) => {
                             • Lien social : ${social_link}
                         </div>
                         
-                        <p style="font-size: 14px; color: #6b7280;">Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-                        <p style="word-break: break-all; color: #4F46E5; font-size: 12px;">${verifyLink}</p>
-                        
-                        <p><strong>⚠️ Important :</strong> Ce lien expire dans 24 heures. Une fois votre email confirmé, votre compte sera validé par notre équipe sous 24-48h.</p>
+                        <p><strong>⚠️ Important :</strong> Vous devez d'abord vérifier votre compte social, puis votre compte sera validé par notre équipe sous 24-48h.</p>
                     </div>
                     
                     <div class="footer">
@@ -274,114 +571,43 @@ router.post('/register', async (req, res) => {
                     </div>
                 </body>
                 </html>
-            `,
-            text: `Bienvenue sur TajerTrust!
-
-          Bonjour ${business_name},
-
-          Merci de vous être inscrit sur TajerTrust.
-
-          Pour activer votre compte, confirmez votre email en cliquant sur ce lien :
-          ${verifyLink}
-
-          Informations de votre compte :
-          • Business : ${business_name}
-          • Email : ${email}
-          • Lien social : ${social_link}
-
-          Important : Ce lien expire dans 24 heures. Votre compte sera validé par notre équipe sous 24-48h.
-
-          Si vous n'avez pas créé de compte TajerTrust, ignorez cet email.
-
-          © 2025 TajerTrust`
-                  };
-                  
-        // Send email asynchronously (non-blocking)
-        console.log("📧 Sending confirmation email to:", email);
+            `
+        };
         
         sgMail.send(verificationEmailMsg)
-            .then(() => {
-                console.log(`✅ Verification email sent to ${email}`);
-            })
-            .catch((error) => {
-                console.error('❌ Failed to send verification email:', error.response?.body || error.message);
-                // Don't block registration if email fails - user can request resend later
-            });
+            .then(() => console.log(`✅ Verification email sent to ${email}`))
+            .catch((error) => console.error('❌ Email error:', error.response?.body || error.message));
         
         // ========================================
-        // SEND ADMIN NOTIFICATION (OPTIONAL)
+        // SEND ADMIN NOTIFICATION
         // ========================================
-        
         const adminNotificationMsg = {
             to: process.env.ADMIN_EMAIL,
             from: {
                 email: process.env.SENDGRID_FROM_EMAIL,
                 name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
             },
-            subject: "📝 Nouvelle inscription - TajerTrust",
+            subject: "📝 Nouvelle inscription en attente - TajerTrust",
             html: `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            line-height: 1.6; 
-                            color: #333; 
-                        }
-                        .info-box { 
-                            background-color: #f3f4f6; 
-                            padding: 15px; 
-                            border-radius: 5px; 
-                            margin: 15px 0;
-                        }
-                        .label { 
-                            font-weight: bold; 
-                            color: #4F46E5; 
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h2>📝 Nouvelle inscription (Email/Password)</h2>
-                    
-                    <p>Un nouveau vendeur vient de s'inscrire :</p>
-                    
-                    <div class="info-box">
-                        <p><span class="label">Business:</span> ${business_name}</p>
-                        <p><span class="label">Email:</span> ${email}</p>
-                        <p><span class="label">Lien social:</span> ${social_link}</p>
-                        <p><span class="label">Website:</span> ${website || 'Non fourni'}</p>
-                        <p><span class="label">Type:</span> Inscription Email/Password</p>
-                        <p><span class="label">Date:</span> ${new Date().toLocaleString('fr-FR')}</p>
-                    </div>
-                    
-                    <p>⏳ En attente de confirmation email par l'utilisateur.</p>
-                </body>
-                </html>
-            `,
-            text: `Nouvelle inscription (Email/Password)
-
-            Business: ${business_name}
-            Email: ${email}
-            Lien social: ${social_link}
-            Website: ${website || 'Non fourni'}
-            Type: Inscription Email/Password
-            Date: ${new Date().toLocaleString('fr-FR')}
-
-            En attente de confirmation email par l'utilisateur.`
-                    };
+                <h2>📝 Nouvelle inscription en attente</h2>
+                <p>Un nouveau vendeur vient de s'inscrire :</p>
+                <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px;">
+                    <p><strong>Business:</strong> ${business_name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Lien social:</strong> ${social_link}</p>
+                    <p><strong>Website:</strong> ${website || 'Non fourni'}</p>
+                    <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+                </div>
+                <p>⏳ En attente de vérification sociale par l'utilisateur.</p>
+            `
+        };
         
-        // Send admin notification (optional, non-blocking)
-          sgMail.send(adminNotificationMsg)
-              .then(() => {
-                  console.log('✅ Admin notification sent');
-              })
-              .catch((error) => {
-                  console.error('❌ Failed to send admin notification:', error.response?.body || error.message);
-              });
-          
-        // Respond immediately
-        req.flash('success', "Inscription réussie! Veuillez confirmer votre email pour activer votre compte.");
+        sgMail.send(adminNotificationMsg)
+            .then(() => console.log('✅ Admin notification sent'))
+            .catch((error) => console.error('❌ Admin notification error:', error.response?.body || error.message));
+        
+        // ✅ Redirect to social verification page
+        req.flash('success', "Inscription réussie! Veuillez maintenant vérifier votre compte social.");
         res.redirect(`/verify-social?code=${verifyCode}`);
         
     } catch (err) {
@@ -398,6 +624,62 @@ router.post('/register', async (req, res) => {
 });
 
 // Step 1: Social verification page (after registration)
+// router.get('/verify-social', async (req, res) => {
+//     const { code } = req.query;
+    
+//     if (!code) {
+//         req.flash('error', 'Code de vérification manquant.');
+//         return res.redirect('/register');
+//     }
+    
+//     try {
+//         // Find seller by verify_code
+//         const pendingResult = await pool.query(
+//             //  'SELECT * FROM sellers  WHERE verify_code = $1',
+//             'SELECT * FROM pending_registrations  WHERE verify_code = $1',
+//             [code]
+//         );
+        
+//         if (pendingResult.rows.length === 0) {
+//             req.flash('error', 'Code de vérification invalide.');
+//             return res.redirect('/register');
+//         }
+        
+//         const pending = pendingResult.rows[0];
+      
+//         // Check if already verified
+//         if (pending.is_social_verified === true) {
+//             req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
+//             return res.redirect('/login');
+//         }
+        
+//         // Determine social platform from their provided link
+//         const isInstagram = pending.social_link.includes('instagram.com');
+//         const isTikTok = pending.social_link.includes('tiktok.com');
+        
+//         res.render('verify-social', {
+//             seller : pending,
+//             code,
+//             isInstagram,
+//             isTikTok,
+//             facebookAppId: FACEBOOK_CONFIG.APP_ID,
+//             messages: {
+//                 success: req.flash('success'),
+//                 error: req.flash('error')
+//             },
+//             title: 'Vérification du compte social - TajerTrust',
+//             layout: 'layout',
+//             currentPath: req.path
+//         });
+        
+//     } catch (err) {
+//         console.error('Verify social error:', err);
+//         req.flash('error', 'Erreur lors de la vérification.');
+//         res.redirect('/register');
+//     }
+// });
+
+// Step 1: Social verification page (reads from pending_registrations)
 router.get('/verify-social', async (req, res) => {
     const { code } = req.query;
     
@@ -407,39 +689,39 @@ router.get('/verify-social', async (req, res) => {
     }
     
     try {
-        // Find seller by verify_code
+        // ✅ Find in pending_registrations table
         const pendingResult = await pool.query(
-            //  'SELECT * FROM sellers  WHERE verify_code = $1',
-            'SELECT * FROM pending_registrations  WHERE verify_code = $1',
+            'SELECT * FROM pending_registrations WHERE verify_code = $1',
             [code]
         );
         
         if (pendingResult.rows.length === 0) {
-            req.flash('error', 'Code de vérification invalide.');
+            req.flash('error', 'Code de vérification invalide ou expiré.');
             return res.redirect('/register');
         }
         
         const pending = pendingResult.rows[0];
-      
+        
         // Check if already verified
-        if (pending.is_social_verified === true) {
-            req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
-            return res.redirect('/login');
+        if (pending.is_social_verified) {
+            req.flash('info', 'Votre compte social est déjà vérifié. Finalisation en cours...');
+            return res.redirect(`/complete-registration?code=${code}`);
         }
         
-        // Determine social platform from their provided link
+        // Determine social platform
         const isInstagram = pending.social_link.includes('instagram.com');
         const isTikTok = pending.social_link.includes('tiktok.com');
         
         res.render('verify-social', {
-            seller : pending,
+            seller: pending,
             code,
             isInstagram,
             isTikTok,
             facebookAppId: FACEBOOK_CONFIG.APP_ID,
             messages: {
                 success: req.flash('success'),
-                error: req.flash('error')
+                error: req.flash('error'),
+                info: req.flash('info')
             },
             title: 'Vérification du compte social - TajerTrust',
             layout: 'layout',
@@ -454,48 +736,48 @@ router.get('/verify-social', async (req, res) => {
 });
 
 
-router.post('/verify-social/complete', async (req, res) => {
-  const { code } = req.body;
+// router.post('/verify-social/complete', async (req, res) => {
+//   const { code } = req.body;
 
-  const pendingResult = await pool.query(
-    'SELECT * FROM pending_registrations WHERE verify_code = $1',
-    [code]
-  );
+//   const pendingResult = await pool.query(
+//     'SELECT * FROM pending_registrations WHERE verify_code = $1',
+//     [code]
+//   );
 
-  if (pendingResult.rows.length === 0) {
-    req.flash('error', 'Session expirée.');
-    return res.redirect('/register');
-  }
+//   if (pendingResult.rows.length === 0) {
+//     req.flash('error', 'Session expirée.');
+//     return res.redirect('/register');
+//   }
 
-  const user = pendingResult.rows[0];
+//   const user = pendingResult.rows[0];
 
-  await pool.query(
-    `INSERT INTO sellers (
-      business_name,
-      email,
-      password,
-      social_link,
-      website,
-      is_verified,
-      created_at
-    ) VALUES ($1, $2, $3, $4, $5, true, NOW())`,
-    [
-      user.business_name,
-      user.email,
-      user.password,
-      user.social_link,
-      user.website
-    ]
-  );
+//   await pool.query(
+//     `INSERT INTO sellers (
+//       business_name,
+//       email,
+//       password,
+//       social_link,
+//       website,
+//       is_verified,
+//       created_at
+//     ) VALUES ($1, $2, $3, $4, $5, true, NOW())`,
+//     [
+//       user.business_name,
+//       user.email,
+//       user.password,
+//       user.social_link,
+//       user.website
+//     ]
+//   );
 
-  await pool.query(
-    'DELETE FROM pending_registrations WHERE id = $1',
-    [user.id]
-  );
+//   await pool.query(
+//     'DELETE FROM pending_registrations WHERE id = $1',
+//     [user.id]
+//   );
 
-  req.flash('success', 'Inscription finalisée avec succès 🎉');
-  res.redirect('/login');
-});
+//   req.flash('success', 'Inscription finalisée avec succès 🎉');
+//   res.redirect('/login');
+// });
 
 
 // Step 2: Instagram verification initiation
@@ -525,6 +807,82 @@ router.get('/auth/instagram/verify', async (req, res) => {
 });
 
 // Step 3: Instagram verification callback
+// router.get('/auth/instagram/callback', async (req, res) => {
+//     const { code, state } = req.query;
+//     const verifyCode = req.session.verifyCode;
+    
+//     console.log('📥 Instagram callback received');
+//     console.log('State:', state);
+//     console.log('Verify code from session:', verifyCode);
+    
+//     if (!state || !state.startsWith('verify_instagram_') || !verifyCode) {
+//         req.flash('error', 'Session de vérification invalide.');
+//         return res.redirect('/register');
+//     }
+    
+//     try {
+//         // Determine redirect URI based on environment
+//         const redirectUri = process.env.NODE_ENV === 'production'
+//             ? 'https://tajertrust.com/auth/instagram/callback'
+//             : 'http://localhost:3000/auth/instagram/callback';
+        
+//         // Exchange code for access token
+//         const tokenResponse = await axios.get(
+//             `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`
+//         );
+        
+//         const access_token = tokenResponse.data.access_token;
+//         console.log('✅ Access token received');
+        
+//         // Get Instagram business account (returns array)
+//         const instagramAccounts = await getInstagramBusinessAccountWithPages(access_token);
+        
+//         if (instagramAccounts && instagramAccounts.length > 0) {
+//             // Take the first Instagram account found
+//             const instagramAccount = instagramAccounts[0];
+            
+//             console.log('✅ Instagram account found:', instagramAccount.instagram_username);
+            
+//             // Update seller with verified Instagram data
+//             await pool.query(`
+//                 UPDATE pending_registrations
+//                 SET 
+//                   is_social_verified = true,
+//                   social_verified_at = NOW(),
+//                   instagram_username = $1,
+//                   instagram_account_id = $2,
+//                   instagram_page_name = $3
+//                 WHERE verify_code = $4
+
+//             `, [
+//                 instagramAccount.instagram_username,
+//                 instagramAccount.instagram_id,
+//                 instagramAccount.page_name || instagramAccount.instagram_username,
+//                 verifyCode
+//             ]);
+            
+//             console.log('✅ Database updated for verify_code:', verifyCode);
+            
+//             // Clear session
+//             delete req.session.verifyCode;
+            
+//             req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
+//             res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
+            
+//         } else {
+//             console.error('❌ No Instagram Business account found');
+//             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur connecté à une page Facebook.');
+//             res.redirect(`/verify-social?code=${verifyCode}&error=no_instagram`);
+//         }
+        
+//     } catch (error) {
+//         console.error('❌ Instagram verification error:', error.response?.data || error.message);
+//         req.flash('error', 'Erreur lors de la vérification Instagram. Veuillez réessayer.');
+//         res.redirect(`/verify-social?code=${verifyCode}&error=verification_failed`);
+//     }
+// });
+
+// Step 2: Instagram verification callback
 router.get('/auth/instagram/callback', async (req, res) => {
     const { code, state } = req.query;
     const verifyCode = req.session.verifyCode;
@@ -539,7 +897,6 @@ router.get('/auth/instagram/callback', async (req, res) => {
     }
     
     try {
-        // Determine redirect URI based on environment
         const redirectUri = process.env.NODE_ENV === 'production'
             ? 'https://tajertrust.com/auth/instagram/callback'
             : 'http://localhost:3000/auth/instagram/callback';
@@ -552,26 +909,23 @@ router.get('/auth/instagram/callback', async (req, res) => {
         const access_token = tokenResponse.data.access_token;
         console.log('✅ Access token received');
         
-        // Get Instagram business account (returns array)
+        // Get Instagram business account
         const instagramAccounts = await getInstagramBusinessAccountWithPages(access_token);
         
         if (instagramAccounts && instagramAccounts.length > 0) {
-            // Take the first Instagram account found
             const instagramAccount = instagramAccounts[0];
             
             console.log('✅ Instagram account found:', instagramAccount.instagram_username);
             
-            // Update seller with verified Instagram data
+            // ✅ Update pending_registrations (not sellers table yet)
             await pool.query(`
-                UPDATE pending_registrations
+                UPDATE pending_registrations 
                 SET 
-                  is_social_verified = true,
-                  social_verified_at = NOW(),
-                  instagram_username = $1,
-                  instagram_account_id = $2,
-                  instagram_page_name = $3
+                    is_social_verified = true,
+                    instagram_username = $1,
+                    instagram_account_id = $2,
+                    instagram_page_name = $3
                 WHERE verify_code = $4
-
             `, [
                 instagramAccount.instagram_username,
                 instagramAccount.instagram_id,
@@ -579,13 +933,13 @@ router.get('/auth/instagram/callback', async (req, res) => {
                 verifyCode
             ]);
             
-            console.log('✅ Database updated for verify_code:', verifyCode);
+            console.log('✅ Pending registration updated for verify_code:', verifyCode);
             
             // Clear session
             delete req.session.verifyCode;
             
-            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
-            res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
+            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username})`);
+            res.redirect(`/complete-registration?code=${verifyCode}`);
             
         } else {
             console.error('❌ No Instagram Business account found');
@@ -600,6 +954,82 @@ router.get('/auth/instagram/callback', async (req, res) => {
     }
 });
 
+// ✅ NEW: Complete registration - Move from pending to sellers table
+router.get('/complete-registration', async (req, res) => {
+    const { code } = req.query;
+    
+    if (!code) {
+        req.flash('error', 'Code de vérification manquant.');
+        return res.redirect('/register');
+    }
+    
+    try {
+        // Get pending registration
+        const pendingResult = await pool.query(
+            'SELECT * FROM pending_registrations WHERE verify_code = $1',
+            [code]
+        );
+        
+        if (pendingResult.rows.length === 0) {
+            req.flash('error', 'Session expirée ou invalide.');
+            return res.redirect('/register');
+        }
+        
+        const pending = pendingResult.rows[0];
+        
+        // Check if social verification is complete
+        if (!pending.is_social_verified) {
+            req.flash('error', 'Veuillez d\'abord vérifier votre compte social.');
+            return res.redirect(`/verify-social?code=${code}`);
+        }
+        
+        // ✅ Move to sellers table
+        await pool.query(
+            `INSERT INTO sellers (
+                business_name, email, password, social_link, website,
+                is_verified, verification_token, verify_code,
+                is_social_verified, instagram_username, 
+                instagram_account_id, instagram_page_name,
+                created_at
+            )
+            VALUES ($1, $2, $3, $4, $5, false, $6, $7, true, $8, $9, $10, NOW())`,
+            [
+                pending.business_name,
+                pending.email,
+                pending.password,
+                pending.social_link,
+                pending.website || '',
+                pending.verification_token,
+                pending.verify_code,
+                pending.instagram_username,
+                pending.instagram_account_id,
+                pending.instagram_page_name
+            ]
+        );
+        
+        // ✅ Delete from pending_registrations
+        await pool.query(
+            'DELETE FROM pending_registrations WHERE id = $1',
+            [pending.id]
+        );
+        
+        console.log('✅ Registration completed for:', pending.email);
+        
+        req.flash('success', 'Inscription finalisée avec succès! 🎉 Votre compte sera validé par notre équipe sous 24-48h. Vous recevrez un email de confirmation.');
+        res.redirect('/login');
+        
+    } catch (err) {
+        console.error('Complete registration error:', err);
+        
+        if (err.code === '23505') {
+            req.flash('error', 'Cet email est déjà utilisé.');
+        } else {
+            req.flash('error', 'Erreur lors de la finalisation de l\'inscription.');
+        }
+        
+        res.redirect('/register');
+    }
+});
 // Step 4: Skip social verification (optional - for TikTok or later)
 router.post('/skip-social-verification', async (req, res) => {
     const { code } = req.body;
