@@ -422,7 +422,7 @@ router.get('/verify-social', async (req, res) => {
         const pending = pendingResult.rows[0];
       
         // Check if already verified
-        if (pending.is_social_verified) {
+        if (pending.is_social_verified === true) {
             req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
             return res.redirect('/login');
         }
@@ -563,14 +563,15 @@ router.get('/auth/instagram/callback', async (req, res) => {
             
             // Update seller with verified Instagram data
             await pool.query(`
-                UPDATE sellers 
+                UPDATE pending_registrations
                 SET 
-                    is_social_verified = true,
-                    social_verified_at = NOW(),
-                    instagram_username = $1,
-                    instagram_account_id = $2,
-                    instagram_page_name = $3
+                  is_social_verified = true,
+                  social_verified_at = NOW(),
+                  instagram_username = $1,
+                  instagram_account_id = $2,
+                  instagram_page_name = $3
                 WHERE verify_code = $4
+
             `, [
                 instagramAccount.instagram_username,
                 instagramAccount.instagram_id,
