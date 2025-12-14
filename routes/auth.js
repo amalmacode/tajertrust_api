@@ -607,7 +607,7 @@ router.post('/register', async (req, res) => {
             .catch((error) => console.error('❌ Admin notification error:', error.response?.body || error.message));
         
         // ✅ Redirect to social verification page
-        req.flash('success', "Inscription réussie! Veuillez maintenant vérifier votre compte social.");
+        req.flash('success', "Inscription initiale réussie! Veuillez maintenant vérifier la propriété de votre compte social.");
         res.redirect(`/verify-social?code=${verifyCode}`);
         
     } catch (err) {
@@ -623,61 +623,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Step 1: Social verification page (after registration)
-// router.get('/verify-social', async (req, res) => {
-//     const { code } = req.query;
-    
-//     if (!code) {
-//         req.flash('error', 'Code de vérification manquant.');
-//         return res.redirect('/register');
-//     }
-    
-//     try {
-//         // Find seller by verify_code
-//         const pendingResult = await pool.query(
-//             //  'SELECT * FROM sellers  WHERE verify_code = $1',
-//             'SELECT * FROM pending_registrations  WHERE verify_code = $1',
-//             [code]
-//         );
-        
-//         if (pendingResult.rows.length === 0) {
-//             req.flash('error', 'Code de vérification invalide.');
-//             return res.redirect('/register');
-//         }
-        
-//         const pending = pendingResult.rows[0];
-      
-//         // Check if already verified
-//         if (pending.is_social_verified === true) {
-//             req.flash('success', 'Votre compte social est déjà vérifié. Vérifiez votre email pour continuer.');
-//             return res.redirect('/login');
-//         }
-        
-//         // Determine social platform from their provided link
-//         const isInstagram = pending.social_link.includes('instagram.com');
-//         const isTikTok = pending.social_link.includes('tiktok.com');
-        
-//         res.render('verify-social', {
-//             seller : pending,
-//             code,
-//             isInstagram,
-//             isTikTok,
-//             facebookAppId: FACEBOOK_CONFIG.APP_ID,
-//             messages: {
-//                 success: req.flash('success'),
-//                 error: req.flash('error')
-//             },
-//             title: 'Vérification du compte social - TajerTrust',
-//             layout: 'layout',
-//             currentPath: req.path
-//         });
-        
-//     } catch (err) {
-//         console.error('Verify social error:', err);
-//         req.flash('error', 'Erreur lors de la vérification.');
-//         res.redirect('/register');
-//     }
-// });
 
 // Step 1: Social verification page (reads from pending_registrations)
 router.get('/verify-social', async (req, res) => {
@@ -736,51 +681,6 @@ router.get('/verify-social', async (req, res) => {
 });
 
 
-// router.post('/verify-social/complete', async (req, res) => {
-//   const { code } = req.body;
-
-//   const pendingResult = await pool.query(
-//     'SELECT * FROM pending_registrations WHERE verify_code = $1',
-//     [code]
-//   );
-
-//   if (pendingResult.rows.length === 0) {
-//     req.flash('error', 'Session expirée.');
-//     return res.redirect('/register');
-//   }
-
-//   const user = pendingResult.rows[0];
-
-//   await pool.query(
-//     `INSERT INTO sellers (
-//       business_name,
-//       email,
-//       password,
-//       social_link,
-//       website,
-//       is_verified,
-//       created_at
-//     ) VALUES ($1, $2, $3, $4, $5, true, NOW())`,
-//     [
-//       user.business_name,
-//       user.email,
-//       user.password,
-//       user.social_link,
-//       user.website
-//     ]
-//   );
-
-//   await pool.query(
-//     'DELETE FROM pending_registrations WHERE id = $1',
-//     [user.id]
-//   );
-
-//   req.flash('success', 'Inscription finalisée avec succès 🎉');
-//   res.redirect('/login');
-// });
-
-
-// Step 2: Instagram verification initiation
 router.get('/auth/instagram/verify', async (req, res) => {
     const { code } = req.query; // verify_code from the verification page
     
@@ -806,81 +706,6 @@ router.get('/auth/instagram/verify', async (req, res) => {
     res.redirect(authUrl);
 });
 
-// Step 3: Instagram verification callback
-// router.get('/auth/instagram/callback', async (req, res) => {
-//     const { code, state } = req.query;
-//     const verifyCode = req.session.verifyCode;
-    
-//     console.log('📥 Instagram callback received');
-//     console.log('State:', state);
-//     console.log('Verify code from session:', verifyCode);
-    
-//     if (!state || !state.startsWith('verify_instagram_') || !verifyCode) {
-//         req.flash('error', 'Session de vérification invalide.');
-//         return res.redirect('/register');
-//     }
-    
-//     try {
-//         // Determine redirect URI based on environment
-//         const redirectUri = process.env.NODE_ENV === 'production'
-//             ? 'https://tajertrust.com/auth/instagram/callback'
-//             : 'http://localhost:3000/auth/instagram/callback';
-        
-//         // Exchange code for access token
-//         const tokenResponse = await axios.get(
-//             `https://graph.facebook.com/v21.0/oauth/access_token?client_id=${FACEBOOK_CONFIG.APP_ID}&client_secret=${FACEBOOK_CONFIG.APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`
-//         );
-        
-//         const access_token = tokenResponse.data.access_token;
-//         console.log('✅ Access token received');
-        
-//         // Get Instagram business account (returns array)
-//         const instagramAccounts = await getInstagramBusinessAccountWithPages(access_token);
-        
-//         if (instagramAccounts && instagramAccounts.length > 0) {
-//             // Take the first Instagram account found
-//             const instagramAccount = instagramAccounts[0];
-            
-//             console.log('✅ Instagram account found:', instagramAccount.instagram_username);
-            
-//             // Update seller with verified Instagram data
-//             await pool.query(`
-//                 UPDATE pending_registrations
-//                 SET 
-//                   is_social_verified = true,
-//                   social_verified_at = NOW(),
-//                   instagram_username = $1,
-//                   instagram_account_id = $2,
-//                   instagram_page_name = $3
-//                 WHERE verify_code = $4
-
-//             `, [
-//                 instagramAccount.instagram_username,
-//                 instagramAccount.instagram_id,
-//                 instagramAccount.page_name || instagramAccount.instagram_username,
-//                 verifyCode
-//             ]);
-            
-//             console.log('✅ Database updated for verify_code:', verifyCode);
-            
-//             // Clear session
-//             delete req.session.verifyCode;
-            
-//             req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username}). Vérifiez maintenant votre email pour finaliser votre inscription.`);
-//             res.redirect(`/verify-social?code=${verifyCode}&verified=true`);
-            
-//         } else {
-//             console.error('❌ No Instagram Business account found');
-//             req.flash('error', 'Aucun compte Instagram Business trouvé. Assurez-vous que votre Instagram est un compte Business/Créateur connecté à une page Facebook.');
-//             res.redirect(`/verify-social?code=${verifyCode}&error=no_instagram`);
-//         }
-        
-//     } catch (error) {
-//         console.error('❌ Instagram verification error:', error.response?.data || error.message);
-//         req.flash('error', 'Erreur lors de la vérification Instagram. Veuillez réessayer.');
-//         res.redirect(`/verify-social?code=${verifyCode}&error=verification_failed`);
-//     }
-// });
 
 // Step 2: Instagram verification callback
 router.get('/auth/instagram/callback', async (req, res) => {
@@ -1015,7 +840,7 @@ router.get('/complete-registration', async (req, res) => {
         
         console.log('✅ Registration completed for:', pending.email);
         
-        req.flash('success', 'Inscription finalisée avec succès! 🎉 Votre compte sera validé par notre équipe sous 24-48h. Vous recevrez un email de confirmation.');
+        req.flash('success', 'Inscription enregistrée 🎉\n👉 Étape 1 : confirmez votre adresse email\n👉 Étape 2 : validation de votre compte par notre équipe sous 24–48h');
         res.redirect('/login');
         
     } catch (err) {
