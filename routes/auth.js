@@ -763,7 +763,7 @@ router.get('/auth/instagram/callback', async (req, res) => {
             // Clear session
             delete req.session.verifyCode;
             
-            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username})`);
+            req.flash('success', `🎉 Instagram vérifié avec succès! (@${instagramAccount.instagram_username}) <br>`);
             res.redirect(`/complete-registration?code=${verifyCode}`);
             
         } else {
@@ -842,7 +842,7 @@ router.get('/complete-registration', async (req, res) => {
         
         req.flash(
           'success',
-          'Inscription enregistrée 🎉<br>👉 Étape 1 : confirmez votre adresse email<br>👉 Étape 2 : validation de votre compte par notre équipe sous 24–48h'
+          '<br>👉 Étape 1 : confirmez votre adresse email<br>👉 Étape 2 : validation de compte par notre équipe sous 24h'
         );
         res.redirect('/login');
         
