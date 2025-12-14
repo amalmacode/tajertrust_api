@@ -1771,14 +1771,23 @@ router.post('/contact_admin', ensureAuthenticated, async (req, res) => {
     return res.redirect('/contact_admin');
   }
   try {
-    const mailOptions = {
-      from: req.user.email,
-      to: 'amaldotrading@gmail.com',
-      subject: `[Contact Admin] ${subject}`,
-      text: `Message de : ${req.user.email}\n\n${message}`
-    };
+   
+      const mailOptions = {
+            from: req.user.email,
+            to:  process.env.SENDGRID_FROM_EMAIL,
+            subject: `[Contact Admin] ${subject}`,
+            text: `Message de : ${req.user.email}\n\n${message}`,
+                    };
 
-    await transporter.sendMail(mailOptions);
+           // Send email to admin  from user
+           sgMail.send(mailOptions)
+            .then(() => {
+                console.log(`✅ User email sent to ${process.env.SENDGRID_FROM_EMAIL}`);
+            })
+            .catch((error) => {
+                console.error('❌ Failed to send seller email:', error.response?.body || error.message);
+                // Don't block registration if email fails
+            });
 
     req.flash('success', 'Votre message a été envoyé à l\'administrateur.');
     res.redirect('/contact_admin');
@@ -1817,13 +1826,27 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     const resetLink = `http://${req.headers.host}/reset-password/${token}`;
-    await transporter.sendMail({
-      to: email,
-      from: process.env.MAIL_USER,
-      subject: 'Réinitialisation du mot de passe',
-      html: `<p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe :</p>
-             <p><a href="${resetLink}">${resetLink}</a></p>`
-    });
+  
+    const ForgotPasswordMsg = {
+            to: email,
+            from: {
+                email: process.env.SENDGRID_FROM_EMAIL,
+                name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
+            },
+            subject: 'Réinitialisation du mot de passe',
+            html: `<p>Cliquez sur le lien suivant pour réinitialiser votre mot de passe :</p>
+             <p><a href="${resetLink}">${resetLink}</a></p>`,
+                    };
+
+    // Send Forgot Password email to user
+    sgMail.send(ForgotPasswordMsg)
+            .then(() => {
+                console.log(`✅ Forgot Password email sent to ${email}`);
+            })
+            .catch((error) => {
+                console.error('❌ Failed to send Forgot Password email:', error.response?.body || error.message);
+                // Don't block registration if email fails
+            });
 
     req.flash('success', 'Un lien de réinitialisation a été envoyé à votre adresse email.');
     res.redirect('/forgot-password');
