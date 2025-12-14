@@ -840,7 +840,10 @@ router.get('/complete-registration', async (req, res) => {
         
         console.log('✅ Registration completed for:', pending.email);
         
-        req.flash('success', 'Inscription enregistrée 🎉\n👉 Étape 1 : confirmez votre adresse email\n👉 Étape 2 : validation de votre compte par notre équipe sous 24–48h');
+        req.flash(
+          'success',
+          'Inscription enregistrée 🎉<br>👉 Étape 1 : confirmez votre adresse email<br>👉 Étape 2 : validation de votre compte par notre équipe sous 24–48h'
+        );
         res.redirect('/login');
         
     } catch (err) {
