@@ -1269,6 +1269,44 @@ router.get('/validated_sellers', ensureAdmin, async (req, res) => {
 });
 
 // Valider un vendeur
+// router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
+//   const isAdmin = (await pool.query('SELECT 1 FROM admins WHERE email = $1', [req.user.email])).rows.length > 0;
+//   const sellerId = req.params.id;
+//   const currentPage = req.query.page || 1;
+
+//   if (!isAdmin) {
+//     return res.redirect('/login');
+//   }
+
+//   try {
+
+//     const sellers = await pool.query('SELECT * FROM sellers WHERE id = $1', [sellerId]);
+//     const seller = sellers.rows[0];
+
+//     if (!seller) {
+//       req.flash('error', 'Vendeur introuvable.');
+//       return res.redirect('/pending_sellers?page='+currentPage);
+//     }
+
+//     if (!seller.is_verified) {
+//       req.flash('error', "Ce vendeur n'a pas encore vérifié son email.");
+//       return res.redirect('/pending_sellers?page='+currentPage);
+//     }
+//     const result = await pool.query("UPDATE sellers SET is_validated = true WHERE id = $1 RETURNING business_name", [req.params.id]);
+//     const validatedName = result.rows[0]?.business_name || "Inconnu";
+//   //  console.log(validatedName+ " est validé");
+
+//     req.flash('success', `Le seller ${validatedName} a été validé avec succès.`);
+//     res.redirect('/pending_sellers?page='+currentPage);
+
+//   } catch (error) {
+//     console.error(error);
+//     req.flash('error', 'Une erreur est survenue lors de la validation.');
+//   }
+//   res.redirect('/pending_sellers?page='+currentPage);
+// });
+
+// Valider un vendeur
 router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
   const isAdmin = (await pool.query('SELECT 1 FROM admins WHERE email = $1', [req.user.email])).rows.length > 0;
   const sellerId = req.params.id;
@@ -1279,33 +1317,255 @@ router.post('/admin/validate_seller/:id', ensureAdmin, async (req, res) => {
   }
 
   try {
-
     const sellers = await pool.query('SELECT * FROM sellers WHERE id = $1', [sellerId]);
     const seller = sellers.rows[0];
 
     if (!seller) {
       req.flash('error', 'Vendeur introuvable.');
-      return res.redirect('/pending_sellers?page='+currentPage);
+      return res.redirect('/pending_sellers?page=' + currentPage);
     }
 
     if (!seller.is_verified) {
       req.flash('error', "Ce vendeur n'a pas encore vérifié son email.");
-      return res.redirect('/pending_sellers?page='+currentPage);
+      return res.redirect('/pending_sellers?page=' + currentPage);
     }
-    const result = await pool.query("UPDATE sellers SET is_validated = true WHERE id = $1 RETURNING business_name", [req.params.id]);
-    const validatedName = result.rows[0]?.business_name || "Inconnu";
-  //  console.log(validatedName+ " est validé");
 
-    req.flash('success', `Le seller ${validatedName} a été validé avec succès.`);
-    res.redirect('/pending_sellers?page='+currentPage);
+    // ✅ Update seller as validated
+    const result = await pool.query(
+      "UPDATE sellers SET is_validated = true, validated_at = NOW() WHERE id = $1 RETURNING *", 
+      [sellerId]
+    );
+    
+    const validatedSeller = result.rows[0];
+
+    // ========================================
+    // ✅ SEND VALIDATION SUCCESS EMAIL
+    // ========================================
+    
+    const validationEmailMsg = {
+      to: validatedSeller.email,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL,
+        name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
+      },
+      subject: "🎉 Votre compte TajerTrust est maintenant actif!",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              line-height: 1.6; 
+              color: #333; 
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+              color: white;
+              padding: 30px 20px;
+              text-align: center;
+              border-radius: 10px 10px 0 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+            }
+            .content {
+              background-color: #ffffff;
+              padding: 30px;
+              border: 1px solid #e5e7eb;
+              border-top: none;
+            }
+            .success-badge {
+              background-color: #10B981;
+              color: white;
+              padding: 10px 20px;
+              border-radius: 20px;
+              display: inline-block;
+              font-weight: bold;
+              margin: 20px 0;
+            }
+            .button { 
+              display: inline-block; 
+              padding: 14px 35px; 
+              background-color: #4F46E5; 
+              color: white !important; 
+              text-decoration: none; 
+              border-radius: 8px; 
+              margin: 20px 0;
+              font-weight: bold;
+              font-size: 16px;
+            }
+            .button:hover {
+              background-color: #4338CA;
+            }
+            .info-box {
+              background-color: #EEF2FF;
+              padding: 20px;
+              border-left: 4px solid #4F46E5;
+              margin: 20px 0;
+              border-radius: 5px;
+            }
+            .feature-list {
+              list-style: none;
+              padding: 0;
+            }
+            .feature-list li {
+              padding: 10px 0;
+              padding-left: 30px;
+              position: relative;
+            }
+            .feature-list li:before {
+              content: "✓";
+              position: absolute;
+              left: 0;
+              color: #10B981;
+              font-weight: bold;
+              font-size: 20px;
+            }
+            .footer { 
+              margin-top: 30px; 
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 12px; 
+              color: #6b7280;
+              text-align: center;
+            }
+            .highlight {
+              color: #4F46E5;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🎉 Félicitations!</h1>
+          </div>
+          
+          <div class="content">
+            <div style="text-align: center;">
+              <div class="success-badge">✓ COMPTE VALIDÉ</div>
+            </div>
+            
+            <h2>Bonjour ${validatedSeller.business_name},</h2>
+            
+            <p style="font-size: 16px;">
+              Nous avons le plaisir de vous informer que votre compte <strong>TajerTrust</strong> 
+              a été validé avec succès par notre équipe! 🎊
+            </p>
+            
+            <div class="info-box">
+              <p style="margin: 0; font-size: 15px;">
+                <strong>🔓 Votre compte est maintenant actif!</strong><br>
+                Vous pouvez dès maintenant vous connecter et profiter de tous les avantages 
+                de la plateforme TajerTrust.
+              </p>
+            </div>
+            
+            <center>
+              <a href="${process.env.VERIFYLINK || 'https://tajertrust.com'}/login" class="button">
+                Se connecter maintenant →
+              </a>
+            </center>
+            
+            <h3 style="color: #4F46E5; margin-top: 30px;">Ce que vous pouvez faire maintenant:</h3>
+            
+            <ul class="feature-list">
+              <li>Accéder à votre tableau de bord personnalisé</li>
+              <li>Générer votre badge de vérification TajerTrust</li>
+              <li>Partager votre profil vérifié avec vos clients</li>
+              <li>Augmenter la confiance de vos acheteurs</li>
+              <li>Profiter de tous les outils de la plateforme</li>
+            </ul>
+            
+            <div class="info-box" style="background-color: #FEF3C7; border-left-color: #F59E0B;">
+              <p style="margin: 0;">
+                <strong>💡 Conseil:</strong> N'oubliez pas d'ajouter votre badge TajerTrust 
+                sur vos réseaux sociaux pour montrer à vos clients que vous êtes un vendeur vérifié!
+              </p>
+            </div>
+            
+            <p style="margin-top: 30px;">
+              Si vous avez des questions ou besoin d'aide, notre équipe est là pour vous accompagner.
+            </p>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+              <strong>Informations de connexion:</strong><br>
+              Email: <span class="highlight">${validatedSeller.email}</span><br>
+              Compte Instagram: <span class="highlight">@${validatedSeller.instagram_username || 'Non défini'}</span>
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>Merci de faire confiance à TajerTrust! 🙏</p>
+            <p>© 2025 TajerTrust. Tous droits réservés.</p>
+            <p style="margin-top: 10px;">
+              <a href="${process.env.VERIFYLINK || 'https://tajertrust.com'}" style="color: #4F46E5; text-decoration: none;">
+                Visitez TajerTrust
+              </a>
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
+🎉 Félicitations! Votre compte TajerTrust est maintenant actif!
+
+Bonjour ${validatedSeller.business_name},
+
+Nous avons le plaisir de vous informer que votre compte TajerTrust a été validé avec succès par notre équipe!
+
+🔓 Votre compte est maintenant actif!
+Vous pouvez dès maintenant vous connecter et profiter de tous les avantages de la plateforme TajerTrust.
+
+Connectez-vous ici: ${process.env.VERIFYLINK || 'https://tajertrust.com'}/login
+
+Ce que vous pouvez faire maintenant:
+✓ Accéder à votre tableau de bord personnalisé
+✓ Générer votre badge de vérification TajerTrust
+✓ Partager votre profil vérifié avec vos clients
+✓ Augmenter la confiance de vos acheteurs
+✓ Profiter de tous les outils de la plateforme
+
+💡 Conseil: N'oubliez pas d'ajouter votre badge TajerTrust sur vos réseaux sociaux!
+
+Informations de connexion:
+Email: ${validatedSeller.email}
+Compte Instagram: @${validatedSeller.instagram_username || 'Non défini'}
+
+Merci de faire confiance à TajerTrust! 🙏
+
+© 2025 TajerTrust
+      `
+    };
+
+    // Send validation email (non-blocking)
+    console.log("📧 Sending validation email to:", validatedSeller.email);
+    
+    sgMail.send(validationEmailMsg)
+      .then(() => {
+        console.log(`✅ Validation email sent to ${validatedSeller.email}`);
+      })
+      .catch((error) => {
+        console.error('❌ Failed to send validation email:', error.response?.body || error.message);
+        // Don't block the validation process if email fails
+      });
+
+    // ========================================
+    // Success response
+    // ========================================
+    req.flash('success', `Le seller ${validatedSeller.business_name} a été validé avec succès. Un email de confirmation lui a été envoyé.`);
+    res.redirect('/pending_sellers?page=' + currentPage);
 
   } catch (error) {
-    console.error(error);
+    console.error('Validation error:', error);
     req.flash('error', 'Une erreur est survenue lors de la validation.');
+    res.redirect('/pending_sellers?page=' + currentPage);
   }
-  res.redirect('/pending_sellers?page='+currentPage);
 });
-
 // Supprimer un vendeur dans bending sellers
 router.post('/admin/delete_seller', ensureAdmin, async (req, res) => {
 
