@@ -842,7 +842,7 @@ router.get('/complete-registration', async (req, res) => {
         
         req.flash(
           'success',
-          '<br>👉 Étape 1 : confirmez votre adresse email<br>👉 Étape 2 : validation de compte par notre équipe sous 24h'
+          '👉 Étape 1 : confirmez votre adresse email<br>👉 Étape 2 : validation de compte par notre équipe sous 24h'
         );
         res.redirect('/login');
         
