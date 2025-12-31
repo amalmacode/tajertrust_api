@@ -28,7 +28,9 @@
               <%= seller.is_verified ? '✅' : '❌' %>
             </span>
           </td>
-          <td><a href="<%= seller.social_link %>" target="_blank" class="text-blue-600 underline">Voir</a></td>
+          <td><a href="https://www.instagram.com/<%= seller.instagram_username %>" target="_blank" class="text-blue-600 underline">
+                <%= seller.instagram_username %>
+          </a></td>
           <td>
             <form method="POST" action="/admin/validate_seller/<%= seller.id %>?page=<%= currentPage %>">
               <input type="hidden" name="currentPage" value="<%= currentPage %>">

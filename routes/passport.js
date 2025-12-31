@@ -3,7 +3,7 @@ require('dotenv').config();
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const OAuth2Strategy = require('passport-oauth2').Strategy;
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const pool = require('../db');        // your DB pool
 
 // — Local strategy —

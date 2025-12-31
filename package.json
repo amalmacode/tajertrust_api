@@ -2,7 +2,7 @@
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
     "axios": "^1.9.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "cheerio": "^1.0.0",
     "connect-flash": "^0.1.1",
     "connect-mongo": "^5.1.0",
@@ -19,6 +19,7 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "passport-oauth2": "^1.8.0",
+    "pcrypt": "^0.2.0",
     "pg": "^8.14.1",
     "puppeteer": "^24.8.2",
     "puppeteer-extra": "^3.3.6",
