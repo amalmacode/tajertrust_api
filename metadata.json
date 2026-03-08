@@ -1,0 +1,8 @@
+{
+  "name": "RefactorEngine: TajerTrust API V1",
+  "description": "A developer-centric dashboard designed to orchestrate and visualize the refactoring of the TajerTrust backend into a multi-layered REST API and Web-EJS architecture.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
