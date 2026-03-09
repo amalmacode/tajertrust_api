@@ -53,6 +53,10 @@ app.set('views', path.join(__dirname, 'views'));
 // app.use('/auth', require('./routes/auth'));
 // app.use('/users', require('./routes/users'));
 
+// API health check
+app.get("/", (req, res) => {
+  res.send("TajerTrust API V1");
+});
 // API V1 Routes (Stateless + JSON)
 const apiRouter = express.Router();
 apiRouter.use(apiLimiter);
@@ -73,6 +77,7 @@ app.use((err, req, res, next) => {
     error: { code: 'SERVER_ERROR', message: err.message }
   });
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`TajerTrust API V1 running on port ${PORT}`));
