@@ -1,10 +1,9 @@
 
 // USE NODEMAILER FO TESTING 
 const nodemailer = require("nodemailer");
-const dns = require("dns");
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
+  host: "74.125.133.109",
   port: 587,
   secure: false,
   family:4,
@@ -13,7 +12,8 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    servername:"smtp.gmail.com"
   }
 });
 
