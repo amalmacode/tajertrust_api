@@ -91,27 +91,7 @@ async register(userData) {
   // Send verification email
     const verifyLink = `${process.env.VERIFYLINK}/api/v1/auth/verify-email?token=${verificationToken}`;
     console.log('verifyLink : ',verifyLink);
-    // console.log('sgMail : ',sgMail);
-//     sgMail.send({
-//       to: email,
-//       from: {
-//         email: process.env.SENDGRID_FROM_EMAIL,
-//         name: process.env.SENDGRID_FROM_NAME || 'TajerTrust'
-//       },
-//       subject: "Confirmez votre email - TajerTrust",
-//       html: `
-//         <h2>Bienvenue sur TajerTrust 👋</h2>
-//         <p>Bonjour ${business_name},</p>
-//         <p>Veuillez confirmer votre email :</p>
-//         <a href="${verifyLink}" 
-//           style="padding:12px 25px;background:#4F46E5;color:white;text-decoration:none;border-radius:6px;">
-//           Confirmer mon email
-//         </a>
-//       `
-//     }).catch(err =>
-//   console.error('Email error:', err.response?.body || err.message)
-// );;
-    
+  
     await emailService.sendVerificationEmail({
     email,
     verifyLink,

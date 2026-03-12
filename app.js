@@ -20,7 +20,7 @@ app.use(cors({
     'http://localhost:3001', // mobile app dev
     'http://localhost:5173', // if Vite
     'https://tajertrust.com', // production later
-    'https://api.tajertrust.com'
+    // 'https://api.tajertrust.com'
   ],
   credentials: true
 }));
