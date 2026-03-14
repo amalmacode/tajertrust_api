@@ -45,7 +45,11 @@ app.use(flash());
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per window
-  message: { success: false, error: { code: 'RATE_LIMIT', message: 'Too many requests' } }
+  message: { success: false, error: { code: 'RATE_LIMIT', message: 'Too many requests' } },
+  validate: {
+    xForwardedForHeader: false,
+    trustProxy: false,
+  }
 });
 
 // 4. View Engine for Web App
