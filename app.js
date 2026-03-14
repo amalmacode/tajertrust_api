@@ -10,6 +10,9 @@ const flash = require('connect-flash');
 const path = require('path');
 
 const app = express();
+// That tells Express "I'm behind Nginx, trust the X-Forwarded-For header it passes." Without it, express-rate-limit gets confused because it sees the header but Express says to ignore it.
+app.set('trust proxy', 1); 
+
 
 // 1. Security & Global Middleware
 app.use(helmet());
