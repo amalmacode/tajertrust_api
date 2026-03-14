@@ -171,8 +171,7 @@ router.get('/verify-email', async (req, res) => {
   try {
     await authService.verifyEmailToken(token);
 
-    // return res.redirect('tajertrust://verified?success=true');
-      return res.redirect('https://tajertrust.com'); // testing on descktop localhost
+    return res.redirect('tajertrust://verified?success=true');
 
 
   } catch (error) {
