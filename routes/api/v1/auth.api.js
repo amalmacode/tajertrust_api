@@ -165,21 +165,98 @@ router.get('/me', apiAuth, (req, res) => {
 });
 
 
+// router.get('/verify-email', async (req, res) => {
+//   const { token } = req.query;
+
+//   try {
+//     await authService.verifyEmailToken(token);
+
+//     return res.redirect('tajertrust://verified?success=true');
+
+
+//   } catch (error) {
+//     console.error('Verification error:', error.message);
+
+//     return res.redirect('tajertrust://verified?success=false');
+//   }
+// });
+
 router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
+  const userAgent = req.headers['user-agent'] || '';
+  const isMobile = /android|iphone|ipad/i.test(userAgent);
 
   try {
     await authService.verifyEmailToken(token);
 
-    return res.redirect('tajertrust://verified?success=true');
+    if (isMobile) {
+      return res.redirect('tajertrust://verified?success=true');
+    }
 
+    // Browser fallback — nice success page
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Email Verified - TajerTrust</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: -apple-system, sans-serif; background: #f0f4ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+            .card { background: white; border-radius: 16px; padding: 48px 40px; text-align: center; max-width: 420px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+            .icon { font-size: 64px; margin-bottom: 24px; }
+            h1 { color: #1a1a2e; font-size: 24px; margin-bottom: 12px; }
+            p { color: #666; line-height: 1.6; margin-bottom: 32px; }
+            .btn { display: inline-block; background: #2563eb; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; }
+            .btn:hover { background: #1d4ed8; }
+          </style>
+          <script>
+            // Try to open the app automatically
+            window.location.href = 'tajertrust://verified?success=true';
+          </script>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">✅</div>
+            <h1>Email Verified!</h1>
+            <p>Your TajerTrust account is now active. You can close this window and log in to the app.</p>
+            <a href="tajertrust://verified?success=true" class="btn">Open TajerTrust App</a>
+          </div>
+        </body>
+      </html>
+    `);
 
   } catch (error) {
-    console.error('Verification error:', error.message);
+    if (isMobile) {
+      return res.redirect('tajertrust://verified?success=false');
+    }
 
-    return res.redirect('tajertrust://verified?success=false');
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Verification Failed - TajerTrust</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: -apple-system, sans-serif; background: #f0f4ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+            .card { background: white; border-radius: 16px; padding: 48px 40px; text-align: center; max-width: 420px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+            .icon { font-size: 64px; margin-bottom: 24px; }
+            h1 { color: #1a1a2e; font-size: 24px; margin-bottom: 12px; }
+            p { color: #666; line-height: 1.6; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">❌</div>
+            <h1>Verification Failed</h1>
+            <p>This link may have already been used or has expired. Please register again or contact support.</p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 });
-
 
 module.exports = router;

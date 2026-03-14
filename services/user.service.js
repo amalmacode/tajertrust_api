@@ -50,11 +50,10 @@ class UserService {
       { expiresIn: '10m' }
     );
 
-    // const redirectUri = process.env.FACEBOOK_REDIRECT_URI;
     const redirectUri = process.env.NODE_ENV === 'production'
-            ? process.env.FACEBOOK_REDIRECT_URI
-            : process.env.LOCAL_REDIRECT_URI;
-     console.log("ediectURI: ", redirectUri)
+            ?process.env.FACEBOOK_REDIRECT_URI
+           : process.env.LOCAL_REDIRECT_URI;
+     console.log("RedirectURI: ", redirectUri)
     return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${process.env.FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&scope=business_management,pages_show_list,instagram_basic&response_type=code&state=${stateToken}`;

@@ -111,12 +111,12 @@ router.get('/social/instagram/callback', async (req, res) => {
     const result = await userService.handleInstagramCallback(code, state);
 
     // Redirect to mobile deep link
-    const mobileRedirect = `securecheck://instagram-verified?username=${result.username}`;
+    const mobileRedirect = `tajertrust://instagram-verified?username=${result.username}`;
     res.redirect(mobileRedirect);
 
   } catch (err) {
     console.error(err);
-    res.redirect(`securecheck://instagram-verified?error=true`);
+    res.redirect(`tajertrust://instagram-verified?error=true`);
   }
 });
 
