@@ -19,12 +19,32 @@ app.use(helmet());
 // app.use(cors({ origin: 
 //   process.env.ALLOWED_ORIGINS?.split(',') || '*' }));
 app.use(cors({
-  origin: [
-    'http://localhost:3001', // mobile app dev
-    'http://localhost:5173', // if Vite
-    'https://tajertrust.com', // production later
-    // 'https://api.tajertrust.com'
-  ],
+  // origin: [
+  //   'http://localhost:3001', // mobile app dev
+  //   'http://localhost:5173', // if Vite
+  //   'https://tajertrust.com', // production later
+  //   'capacitor://localhost',// ← Capacitor Android
+  //   'ionic://localhost', // ← just in case
+  //   null,              // ← some mobile builds send no origin
+    
+  // ],
+  
+
+  origin: (origin, callback) => {
+    const allowed = [
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'https://tajertrust.com',
+      'capacitor://localhost',  // ← Capacitor Android
+      'ionic://localhost',       // ← just in case
+      null,                      // ← some mobile builds send no origin
+    ];
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
