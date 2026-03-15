@@ -36,6 +36,7 @@ app.use(cors({
       'http://localhost:5173',
       'https://tajertrust.com',
       'capacitor://localhost',  // ← Capacitor Android
+      'https://localhost',
       'ionic://localhost',       // ← just in case
       null,                      // ← some mobile builds send no origin
     ];
