@@ -99,6 +99,7 @@ app.use('/api/v1', apiRouter);
 
 // 6. Global Error Handler
 app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err); // ← add this line
   console.error(err.stack);
   res.status(err.status || 500).json({
     success: false,
