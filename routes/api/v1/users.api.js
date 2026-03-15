@@ -112,54 +112,12 @@ router.get('/social/instagram/callback', async (req, res) => {
 
     // Redirect to mobile deep link
     const mobileRedirect = `tajertrust://instagram-verified?username=${result.username}`;
-    res.redirect(mobileRedirect);
+    return res.redirect(mobileRedirect);
      
-    // TESTING ON LOCAHOST
-
-    // Try deep link, with HTML fallback for browser
-    // return res.send(`
-    //   <!DOCTYPE html>
-    //   <html>
-    //     <head>
-    //       <meta charset="utf-8">
-    //       <title>Instagram Verified - TajerTrust</title>
-    //       <script>
-    //         // Try to open app via deep link
-    //         window.location.href = '${mobileRedirect}';
-    //         // Fallback message after 2s if deep link fails
-    //         setTimeout(() => {
-    //           document.getElementById('msg').style.display = 'block';
-    //         }, 2000);
-    //       </script>
-    //     </head>
-    //     <body style="font-family:sans-serif;text-align:center;padding:60px;">
-    //       <h2>✅ Instagram @${result.username} verified!</h2>
-    //       <p>Redirecting you back to TajerTrust...</p>
-    //       <div id="msg" style="display:none;">
-    //         <p style="color:#888;">If the app didn't open, go back to TajerTrust manually.</p>
-    //         <p>You can close this window.</p>
-    //       </div>
-    //     </body>
-    //   </html>
-    // `);
-    
 
   } catch (err) {
     console.error(err);
-    res.redirect(`tajertrust://instagram-verified?error=true`);
-   // TESTING ON LOCALHOST
-    //  return res.send(`
-    //   <!DOCTYPE html>
-    //   <html>
-    //     <head>
-    //       <script>window.location.href = 'tajertrust://instagram-verified?error=true';</script>
-    //     </head>
-    //     <body style="font-family:sans-serif;text-align:center;padding:60px;">
-    //       <h2>❌ Verification failed</h2>
-    //       <p>${err.message}</p>
-    //     </body>
-    //   </html>
-    // `);
+    return res.redirect(`tajertrust://instagram-verified?error=true`);
   }
 });
 
