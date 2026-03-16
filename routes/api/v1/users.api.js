@@ -118,38 +118,14 @@ router.get('/social/instagram/callback', async (req, res) => {
 
   } catch (err) {
     console.error(err);
-
-  // 4️⃣ Check if social_link matches the verified Instagram username
-  const sellerResult = await db.query(
-    `SELECT social_link FROM sellers WHERE id = $1`,
-    [userId]
-  );
-
-  const seller = sellerResult.rows[0];
-  const socialLink = seller?.social_link || '';
-
-  // Normalize: extract username from URL like https://www.instagram.com/username/
-  const extractUsername = (url) => {
-    try {
-      const clean = url.replace(/\/$/, ''); // remove trailing slash
-      return clean.split('/').pop().toLowerCase();
-    } catch {
-      return '';
+    
+     if (err.message === 'SOCIAL_LINK_MISMATCH') {
+      return res.redirect(
+        `tajertrust://instagram-verified?error=MISMATCH&instagram_username=${err.instagramUsername}`
+      );
     }
-  };
+    
 
-  const socialLinkUsername = extractUsername(socialLink);
-  const igUsername = username.toLowerCase();
-
-  console.log('social_link username:', socialLinkUsername);
-  console.log('instagram verified username:', igUsername);
-
-  if (socialLinkUsername !== igUsername) {
-    // Mismatch — throw with details so callback route can redirect with error
-    const err = new Error('SOCIAL_LINK_MISMATCH');
-    err.instagramUsername = username;
-    throw err;
-  }
     return res.redirect(`tajertrust://instagram-verified?error=true`);
   }
 });

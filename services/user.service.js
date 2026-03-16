@@ -146,19 +146,12 @@ class UserService {
       return '';
     }
   };
-
-  const socialLinkUsername = extractUsername(socialLink);
-  const igUsername = username.toLowerCase();
-
-  console.log('social_link username:', socialLinkUsername);
-  console.log('instagram verified username:', igUsername);
-
-  if (socialLinkUsername !== igUsername) {
-    // Mismatch — throw with details so callback route can redirect with error
-    const err = new Error('SOCIAL_LINK_MISMATCH');
-    err.instagramUsername = username;
-    throw err;
-  }
+     
+   if (extractUsername(socialLink) !== username.toLowerCase()) {
+      const mismatchErr = new Error('SOCIAL_LINK_MISMATCH');
+      mismatchErr.instagramUsername = username;
+      throw mismatchErr;
+    }
 
     // 4️⃣ ALL good - Update seller
     await db.query(
