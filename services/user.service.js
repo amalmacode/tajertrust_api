@@ -127,13 +127,47 @@ class UserService {
 
     const username = igProfile.data.username;
 
-    // 4️⃣ Update seller
+    
+  // 4️⃣ Check if social_link matches the verified Instagram username
+  const sellerResult = await db.query(
+    `SELECT social_link FROM sellers WHERE id = $1`,
+    [userId]
+  );
+
+  const seller = sellerResult.rows[0];
+  const socialLink = seller?.social_link || '';
+
+  // Normalize: extract username from URL like https://www.instagram.com/username/
+  const extractUsername = (url) => {
+    try {
+      const clean = url.replace(/\/$/, ''); // remove trailing slash
+      return clean.split('/').pop().toLowerCase();
+    } catch {
+      return '';
+    }
+  };
+
+  const socialLinkUsername = extractUsername(socialLink);
+  const igUsername = username.toLowerCase();
+
+  console.log('social_link username:', socialLinkUsername);
+  console.log('instagram verified username:', igUsername);
+
+  if (socialLinkUsername !== igUsername) {
+    // Mismatch — throw with details so callback route can redirect with error
+    const err = new Error('SOCIAL_LINK_MISMATCH');
+    err.instagramUsername = username;
+    throw err;
+  }
+
+    // 4️⃣ ALL good - Update seller
     await db.query(
       `
       UPDATE sellers
       SET instagram_username = $1,
           instagram_account_id = $2,
-          is_social_verified = true
+          is_social_verified = true,
+          social_verified_at = NOW()
       WHERE id = $3
       `,
       [username, igId, userId]
