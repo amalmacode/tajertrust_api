@@ -4,6 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 class EmailService {
 
+  //  SEND VERIFICATION EMAIL
   async sendVerificationEmail({ email, verifyLink, business_name }) {
     try {
       const { data, error } = await resend.emails.send({
@@ -39,6 +40,27 @@ class EmailService {
       throw err;
     }
   }
+
+//  SEND PASSWORD RESET EMAIL
+  async sendPasswordResetEmail({ email, resetLink }) {
+  const { data, error } = await resend.emails.send({
+    from: 'TajerTrust <noreply@tajertrust.com>',
+    to: email,
+    subject: 'Reset your TajerTrust password',
+    html: `
+      <h2>Reset your password</h2>
+      <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+      <a href="${resetLink}" 
+         style="background:#2563eb;color:white;padding:10px 18px;text-decoration:none;border-radius:6px;">
+         Reset Password
+      </a>
+      <p>If you didn't request this, ignore this email.</p>
+    `
+  });
+
+  if (error) throw new Error(error.message);
+  return true;
+}
 
 }
 

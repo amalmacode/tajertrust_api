@@ -164,23 +164,7 @@ router.get('/me', apiAuth, (req, res) => {
   });
 });
 
-
-// router.get('/verify-email', async (req, res) => {
-//   const { token } = req.query;
-
-//   try {
-//     await authService.verifyEmailToken(token);
-
-//     return res.redirect('tajertrust://verified?success=true');
-
-
-//   } catch (error) {
-//     console.error('Verification error:', error.message);
-
-//     return res.redirect('tajertrust://verified?success=false');
-//   }
-// });
-
+//  Verify Email GET
 router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
   const userAgent = req.headers['user-agent'] || '';
@@ -258,5 +242,36 @@ router.get('/verify-email', async (req, res) => {
     `);
   }
 });
+
+
+// Forgot Password - POST
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    await authService.forgotPassword(email);
+    return res.json({ success: true, data: null, error: null });
+  } catch (err) {
+    return res.status(500).json({ success: false, data: null, error: { message: err.message } });
+  }
+});
+
+// Redirect deep link to app
+router.get('/reset-password', async (req, res) => {
+  const { token } = req.query;
+  return res.redirect(`tajertrust://reset-password?token=${token}`);
+});
+
+// Reset Password - POST
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  try {
+    await authService.resetPassword(token, password);
+    return res.json({ success: true, data: null, error: null });
+  } catch (err) {
+    return res.status(400).json({ success: false, data: null, error: { code: err.message, message: err.message } });
+  }
+});
+
+
 
 module.exports = router;

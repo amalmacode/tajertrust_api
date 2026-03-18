@@ -123,6 +123,60 @@ async verifyEmailToken(token) {
 }
 
 
+// forgot Password 
+
+async forgotPassword(email) {
+  const { rows } = await db.query(
+    `SELECT id, email FROM sellers WHERE email = $1`, [email]
+  );
+  
+  // Always return success to prevent email enumeration
+  if (!rows[0]) return { success: true };
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db.query(
+    `UPDATE sellers 
+     SET reset_token = $1, reset_token_expires = $2 
+     WHERE id = $3`,
+    [token, expires, rows[0].id]
+  );
+
+  const resetLink = `${process.env.VERIFYLINK}/api/v1/auth/reset-password?token=${token}`;
+  
+  await emailService.sendPasswordResetEmail({
+    email: rows[0].email,
+    resetLink
+  });
+
+  return { success: true };
+}
+
+//  Reset Password 
+async resetPassword(token, newPassword) {
+  const { rows } = await db.query(
+    `SELECT id FROM sellers 
+     WHERE reset_token = $1 
+     AND reset_token_expires > NOW()`,
+    [token]
+  );
+
+  if (!rows[0]) throw new Error('INVALID_OR_EXPIRED_TOKEN');
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+
+  await db.query(
+    `UPDATE sellers 
+     SET password = $1, reset_token = NULL, reset_token_expires = NULL 
+     WHERE id = $2`,
+    [hashed, rows[0].id]
+  );
+
+  return { success: true };
+}
+
+
 }
 
 module.exports = new AuthService();
