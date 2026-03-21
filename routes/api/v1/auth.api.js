@@ -272,6 +272,20 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+//  Refresh Token : POST
+
+router.post('/refresh-token', apiAuth, async (req, res) => {
+  try {
+    const newToken = await authService.refreshToken(req.user.id);
+    return res.json({ success: true, data: { token: newToken }, error: null });
+  } catch (err) {
+    if (err.message === 'USER_NOT_FOUND') {
+      return res.status(404).json({ success: false, data: null, error: { message: err.message } });
+    }
+    return res.status(500).json({ success: false, data: null, error: { message: err.message } });
+  }
+});
+
 
 
 module.exports = router;

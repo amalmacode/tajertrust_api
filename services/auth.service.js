@@ -177,6 +177,36 @@ async resetPassword(token, newPassword) {
 }
 
 
+
+// Refresh token to refresh user infos 
+
+async refreshToken(userId) {
+  const { rows } = await db.query(
+    `SELECT id, email, is_email_verified, is_validated, is_social_verified, social_link, role 
+     FROM sellers WHERE id = $1`,
+    [userId]
+  );
+
+  if (!rows[0]) throw new Error('USER_NOT_FOUND');
+
+  const user = rows[0];
+  const newToken = jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      is_email_verified: user.is_email_verified,
+      is_validated: user.is_validated,
+      is_social_verified: user.is_social_verified,
+      social_link: user.social_link,
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  return newToken;
+}
+
 }
 
 module.exports = new AuthService();
