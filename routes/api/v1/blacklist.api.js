@@ -142,57 +142,74 @@ router.delete('/:id', apiAuth, async (req, res) => {
  * @desc  update blacklisted phone : reason , number
  */
 
+// router.put('/:id', apiAuth, async (req, res) => {
+//   const { id } = req.params;
+//   const { phone, reason } = req.body;
+  
+//   if (!phone || !reason) {
+//     return res.status(400).json({
+//       success: false,
+//       data: null,
+//       error: {
+//         code: 'MISSING_FIELDS',
+//         message: 'Phone and reason are required'
+//       }
+//     });
+//   }
+
+//   try {
+
+//     const sellerId = req.user.id;
+
+//     const updated = await blacklistService.update(
+//       id,
+//       sellerId,
+//       phone,
+//       reason
+//     );
+
+//     res.status(200).json({
+//       success: true,
+//       data: updated,
+//       error: null
+//     });
+
+//   } catch (error) {
+//     res.status(400).json({
+//       success: false,
+//       data: null,
+//       error: {
+//         code: error.message,
+//         message: error.message
+//       }
+//     });
+//   }
+// });
+
 router.put('/:id', apiAuth, async (req, res) => {
   const { id } = req.params;
   const { phone, reason } = req.body;
 
-  console.log('API SIDE: phone', phone)
-  console.log('API SIDE: ID',id)
-
-  
-  if (!phone || !reason) {
-    return res.status(400).json({
-      success: false,
-      data: null,
-      error: {
-        code: 'MISSING_FIELDS',
-        message: 'Phone and reason are required'
+      // At least one field required
+      if (!phone && !reason) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: { code: 'MISSING_FIELDS', message: 'At least phone or reason is required' }
+        });
       }
-    });
-  }
 
-  try {
-
-    const sellerId = req.user.id;
-
-    console.log("API SIDE , SELLER ID",sellerId)
-
-    const updated = await blacklistService.update(
-      id,
-      sellerId,
-      phone,
-      reason
-    );
-
-    res.status(200).json({
-      success: true,
-      data: updated,
-      error: null
-    });
-
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      data: null,
-      error: {
-        code: error.message,
-        message: error.message
-      }
+      try {
+        const updated = await blacklistService.update(id, req.user.id, phone, reason);
+        return res.status(200).json({ success: true, data: updated, error: null });
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          error: { code: error.message, message: error.message }
     });
   }
 });
-
-
 /**
  * @route GET /api/v1/blacklist/check
  * @desc  Check if a specific phone is blacklisted

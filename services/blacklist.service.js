@@ -126,36 +126,79 @@ class BlacklistService {
   }
 
    // update  a blacklisted phone : reason, number for a seller
+  // async update(id, sellerId, phone, reason) {
+  //   const normalized = this.normalizePhone(phone);
+
+  //   if (!normalized || normalized.length < 8) {
+  //     throw new Error('INVALID_PHONE_FORMAT');
+  //   }
+
+  //   const query = `
+  //     UPDATE blacklisted_phones
+  //     SET phone = $1,
+  //         reason = $2,
+  //         updated_at = NOW()
+  //     WHERE id = $3
+  //       AND seller_id = $4
+  //     RETURNING *
+  //   `;
+
+  //   const { rows } = await db.query(query, [
+  //     normalized,
+  //     reason,
+  //     id,
+  //     sellerId
+  //   ]);
+
+  //   if (rows.length === 0) {
+  //     throw new Error('ENTRY_NOT_FOUND');
+  //   }
+
+  //   return rows[0];
+  // }
+
   async update(id, sellerId, phone, reason) {
-    const normalized = this.normalizePhone(phone);
+  // Build dynamic query based on what's provided
+        const fields = [];
+        const values = [];
+        let paramIndex = 1;
 
-    if (!normalized || normalized.length < 8) {
-      throw new Error('INVALID_PHONE_FORMAT');
-    }
+        if (phone !== undefined && phone !== null) {
+          const normalized = this.normalizePhone(phone);
+          if (!normalized || normalized.length < 8) {
+            throw new Error('INVALID_PHONE_FORMAT');
+          }
+          fields.push(`phone = $${paramIndex++}`);
+          values.push(normalized);
+        }
 
-    const query = `
-      UPDATE blacklisted_phones
-      SET phone = $1,
-          reason = $2,
-          updated_at = NOW()
-      WHERE id = $3
-        AND seller_id = $4
-      RETURNING *
-    `;
+        if (reason !== undefined && reason !== null) {
+          fields.push(`reason = $${paramIndex++}`);
+          values.push(reason);
+        }
 
-    const { rows } = await db.query(query, [
-      normalized,
-      reason,
-      id,
-      sellerId
-    ]);
+        if (fields.length === 0) {
+          throw new Error('NO_FIELDS_TO_UPDATE');
+        }
 
-    if (rows.length === 0) {
-      throw new Error('ENTRY_NOT_FOUND');
-    }
+        fields.push(`updated_at = NOW()`);
 
-    return rows[0];
-  }
+        const query = `
+          UPDATE blacklisted_phones
+          SET ${fields.join(', ')}
+          WHERE id = $${paramIndex++}
+            AND seller_id = $${paramIndex++}
+          RETURNING *
+        `;
+
+        values.push(id, sellerId);
+
+        const { rows } = await db.query(query, values);
+
+        if (rows.length === 0) throw new Error('ENTRY_NOT_FOUND');
+
+        return rows[0];
+}
 
   // delete the blacklist of a seller 
   async deleteMyBlacklist(sellerId) {
