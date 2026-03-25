@@ -207,6 +207,16 @@ async refreshToken(userId) {
   return newToken;
 }
 
+// delete user/seller account 
+
+async deleteAccount(userId) {
+  // Delete blacklist entries first (foreign key)
+  await db.query(`DELETE FROM blacklisted_phones WHERE seller_id = $1`, [userId]);
+  // Delete the account
+  await db.query(`DELETE FROM sellers WHERE id = $1`, [userId]);
+  return true;
+}
+
 }
 
 module.exports = new AuthService();

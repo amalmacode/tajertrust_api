@@ -287,5 +287,18 @@ router.post('/refresh-token', apiAuth, async (req, res) => {
 });
 
 
+// delete account : DELETE
+router.delete('/account', apiAuth, async (req, res) => {
+  try {
+    await authService.deleteAccount(req.user.id);
+    return res.json({ success: true, data: null, error: null });
+  } catch (err) {
+    return res.status(500).json({ success: false, data: null, error: { message: err.message } });
+  }
+  
+});
+
+
+
 
 module.exports = router;
