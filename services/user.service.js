@@ -9,7 +9,7 @@ class UserService {
    */
   async getProfile(userId) {
     const query = `
-      SELECT id, email, business_name, social_link, instagram_username,
+      SELECT id, email, business_name, social_link, country_code, instagram_username,
              is_email_verified, is_social_verified, 
              is_validated,role, created_at, last_login, profile_image 
       FROM sellers 

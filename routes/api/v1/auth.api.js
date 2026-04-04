@@ -31,6 +31,7 @@ router.post('/login', async (req, res) => {
             id: user.id,
             email: user.email,
             businessName: user.business_name,
+            country_code: user.country_code,
             is_email_verified: user.is_email_verified,
             is_social_verified: user.is_social_verified,
             is_validated: user.is_validated,
@@ -65,7 +66,7 @@ router.post('/login', async (req, res) => {
  * @access Public
  */
 router.post('/register', async (req, res) => {
-  const { email, password, business_name, social_link } = req.body;
+  const { email, password, business_name, country_code,  social_link } = req.body;
 
   if (!email || !password || !business_name) {
     return res.status(400).json({
@@ -83,6 +84,7 @@ router.post('/register', async (req, res) => {
       email,
       password,
       business_name,
+      country_code,
       social_link,
     });
 
@@ -95,6 +97,7 @@ router.post('/register', async (req, res) => {
       },
       error: null
     });
+
   } catch (error) {
     const isConflict = error.message === 'EMAIL_ALREADY_EXISTS';
     res.status(isConflict ? 409 : 400).json({
@@ -297,8 +300,6 @@ router.delete('/account', apiAuth, async (req, res) => {
   }
   
 });
-
-
 
 
 module.exports = router;

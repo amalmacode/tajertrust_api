@@ -48,13 +48,16 @@ class AuthService {
     const token = jwt.sign(
       { id: user.id, 
         email: user.email,
-         is_email_verified :user.is_email_verified ,
-         is_validated :user.is_validated,
-         is_social_verified:user.is_social_verified, 
-         social_link: user.social_link, 
-         role: user.role },
+        country_code: user.country_code,
+        is_email_verified :user.is_email_verified ,
+        is_validated :user.is_validated,
+        is_social_verified:user.is_social_verified, 
+        social_link: user.social_link, 
+        role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
+
+      
     );
 
     return { 
@@ -67,16 +70,16 @@ class AuthService {
    */
  
 async register(userData) {
-  const { email, password, business_name, social_link} = userData;
+  const { email, password, business_name, country_code, social_link} = userData;
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const verificationToken = crypto.randomBytes(32).toString('hex');
 
   const query = `
     INSERT INTO sellers
-    (email, password, business_name, social_link,
+    (email, password, business_name, country_code, social_link,
      verification_token, created_at)
-    VALUES ($1, $2, $3, $4, $5, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6,NOW())
     RETURNING id, email
   `;
 
@@ -84,6 +87,7 @@ async register(userData) {
     email,
     hashedPassword,
     business_name,
+    country_code || '+212',
     social_link,
     verificationToken
   ]);
@@ -182,7 +186,7 @@ async resetPassword(token, newPassword) {
 
 async refreshToken(userId) {
   const { rows } = await db.query(
-    `SELECT id, email, is_email_verified, is_validated, is_social_verified, social_link, role 
+    `SELECT id, email, is_email_verified, is_validated, is_social_verified, social_link, country_code, role 
      FROM sellers WHERE id = $1`,
     [userId]
   );
@@ -198,6 +202,7 @@ async refreshToken(userId) {
       is_validated: user.is_validated,
       is_social_verified: user.is_social_verified,
       social_link: user.social_link,
+      country_code: user.country_code,
       role: user.role
     },
     process.env.JWT_SECRET,
