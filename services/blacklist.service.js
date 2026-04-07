@@ -56,6 +56,7 @@ class BlacklistService {
     GROUP BY reason`;
     const { rows } = await db.query(query, [phone]);
 
+    console.log("phone on check service:", phone);
     console.log("ROWS ON CHECK RESULTS:", rows) ;
   
     let globalCount = 0;
